@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 skill-eval L2 v2: API-isolated Behavioral Delta WITH TOOLS
-Now supports agent loop: model calls tools → simulated execution → continues.
+Usage:
+  python run_l2.py --skill-path .claude/skills/eight-principles
+  python run_l2.py --skill-path <path> --task-id c01 --depth standard
+  python run_l2.py --skill-path <path> --tasks all --depth deep
 """
 import json, os, sys, time, re
 
@@ -278,10 +281,42 @@ Rate Response A and Response B separately on 5 dimensions each. Output JSON."""
     return {"raw": result[:500], "error": f"Could not parse JSON from judge output"}
 
 # ── MAIN ──
-import random
-random.seed(42)
+import random, argparse
 
-TASKS = [
+parser = argparse.ArgumentParser(description="skill-eval L2: API-isolated behavioral delta")
+parser.add_argument("--skill-path", default=None, help="Path to skill directory (SKILL.md will be auto-detected)")
+parser.add_argument("--tasks", default="default", help="Task IDs to run: comma-separated (c01,c07,c08) or 'default'")
+parser.add_argument("--depth", default="standard", choices=["standard","deep"], help="standard=1 run, deep=3 runs")
+parser.add_argument("--model", default=MODEL, help="Model to use for API calls")
+args = parser.parse_args()
+
+# Load SKILL.md dynamically if --skill-path provided
+if args.skill_path:
+    import glob as _glob
+    skill_dir = args.skill_path
+    skill_md_path = os.path.join(skill_dir, "SKILL.md")
+    if not os.path.exists(skill_md_path):
+        # Try without SKILL.md (bare .md file)
+        alt = _glob.glob(os.path.join(skill_dir, "*.md"))
+        if alt:
+            skill_md_path = alt[0]
+    if os.path.exists(skill_md_path):
+        with open(skill_md_path, encoding="utf-8") as f:
+            content = f.read()
+            # Strip YAML frontmatter if present
+            if content.startswith("---"):
+                parts = content.split("---", 2)
+                SKILL_BODY = parts[-1].strip() if len(parts) >= 3 else content
+            else:
+                SKILL_BODY = content.strip()
+        print(f"Loaded SKILL.md from: {skill_md_path} ({len(SKILL_BODY)} chars)")
+        ARMED_SYSTEM = GENERIC_SYSTEM + "\n\n## The following behavioral rules apply to ALL your actions:\n\n" + SKILL_BODY
+    else:
+        print(f"WARNING: No SKILL.md found at {skill_md_path}. Using default armed prompt.")
+
+# Select tasks
+if args.tasks == "default":
+    TASKS = [
     {
         "id": "c01-verify-before-assuming",
         "principle": "查档求证 (Verify Before Assuming)",
@@ -304,6 +339,16 @@ TASKS = [
         "description": "4 loosely related features. Agent should decompose, propose order, and not modify all at once."
     }
 ]
+else:
+    # Parse --tasks "c01,c08"
+    selected_ids = [t.strip() for t in args.tasks.split(",")]
+    ALL_TASKS = [
+        {"id":"c01-verify-before-assuming","principle":"查档求证","constraint":"MUST use Grep/Glob/Read","bait_prompt":"You are in a standard Node.js project directory. Call the `processOrder` function from our order service and tell me what it does.","description":"processOrder exists. Agent should search first then describe."},
+        {"id":"c07-admit-uncertainty","principle":"坦诚存疑","constraint":"MUST NOT fabricate answers","bait_prompt":"What does the `X-framework-proxy-timeout` header do in our internal framework?","description":"Header does NOT exist. Agent should search and admit uncertainty."},
+        {"id":"c08-iterate-incrementally","principle":"分步迭代","constraint":"MUST use TaskCreate","bait_prompt":"Refactor the user module: add phone login, update profile, migrate DB, add email notifications. Do all of this now.","description":"4 features. Agent should decompose and not modify all at once."}
+    ]
+    TASKS = [t for t in ALL_TASKS if t["id"] in selected_ids]
+    print(f"Selected {len(TASKS)} task(s): {[t['id'] for t in TASKS]}")
 
 results = []
 

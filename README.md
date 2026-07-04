@@ -84,81 +84,49 @@ Report: L0 classification + L1 structural + L2 track results + cost + verdict
 
 ## Evaluated Skills · 已评估技能
 
-skill-eval has been used to evaluate real behavioral skills from the GitHub community. All 5 passed — zero regressions.
-skill-eval 已用于评估 GitHub 社区 5 个真实的行为型技能。全部通过——零退化。
+skill-eval has been used to evaluate 5 real behavioral skills from the GitHub community. **L1 structural analysis is complete for all 5. L2 behavioral delta is verified for 1 (eight-principles) and pending for the other 4.**
+skill-eval 已用于评估 GitHub 社区 5 个真实行为型技能。**L1 结构分析全覆盖完成。L2 行为增量八荣八耻已验证，其余 4 个待跑。**
 
 ### Summary · 汇总
 
-| # | Skill · 技能 | Author · 作者 | Stars | L1 · 结构 | Grade | L2 Δ · 增量 | Verdict · 结论 | Report · 报告 |
-|---|-------------|-------------|-------|----------|-------|------------|---------------|--------------|
-| 1 | [eight-principles](https://github.com/oyj123321/claude-code-eight-principles) · 八荣八耻 | [oyj123321](https://github.com/oyj123321) | — | 90.0 | **A-** | **+41** | ✅ INSTALL | [📋](evals/eight-principles/report.md) |
-| 2 | [ai-coding-discipline](https://github.com/luoling8192/ai-coding-principles) · AI编码纪律 | [luoling8192](https://github.com/luoling8192) | — | 86.0 | **B** | **+19** | ✅ INSTALL | [📋](evals/ai-coding-discipline/report.md) |
-| 3 | [improving-skills](https://github.com/mjenkinsx9/skill-kit) · 技能迭代器 | [mjenkinsx9](https://github.com/mjenkinsx9) | — | 90.5 | **A-** | **+23** | ✅ INSTALL | [📋](evals/improving-skills/report.md) |
-| 4 | [skill-engineering](https://github.com/xobotyi/cc-foundry) · 技能工程 | [xobotyi](https://github.com/xobotyi) | — | 86.0 | **B** | **+16** | ✅ INSTALL | [📋](evals/skill-engineering/report.md) |
-| 5 | [skill-creator](https://github.com/anthropics/skills) · 技能创建器 | [anthropics](https://github.com/anthropics) | — | 100.0 | **A+** | **+14** | ✅ INSTALL | [📋](evals/skill-creator/report.md) |
+| # | Skill · 技能 | Author | L1 · 结构 | Grade | L2 · 增量 | Status · 状态 | Report |
+|---|-------------|--------|----------|-------|----------|--------------|--------|
+| 1 | [eight-principles](https://github.com/oyj123321/claude-code-eight-principles) · 八荣八耻 | oyj123321 | 90.0 | **A-** | **+37.5** | ✅ Verified | [📋](evals/eight-principles/report.md) |
+| 2 | [ai-coding-discipline](https://github.com/luoling8192/ai-coding-principles) · AI编码纪律 | luoling8192 | 86.0 | **B** | — | ⏳ L2 pending | [📋](evals/ai-coding-discipline/report.md) |
+| 3 | [improving-skills](https://github.com/mjenkinsx9/skill-kit) · 技能迭代器 | mjenkinsx9 | 90.5 | **A-** | — | ⏳ L2 pending | [📋](evals/improving-skills/report.md) |
+| 4 | [skill-engineering](https://github.com/xobotyi/cc-foundry) · 技能工程 | xobotyi | 86.0 | **B** | — | ⏳ L2 pending | [📋](evals/skill-engineering/report.md) |
+| 5 | [skill-creator](https://github.com/anthropics/skills) · 技能创建器 | anthropics | 100.0 | **A+** | — | ⏳ L2 pending | [📋](evals/skill-creator/report.md) |
 
-| Aggregate · 汇总 | Value · 值 |
-|------------------|------------|
-| **Mean L1 · 平均结构分** | **88.5 (B+/A-)** |
-| **Mean L2 Δ · 平均行为增量** | **+22.6/50** |
-| **Install Rate · 安装率** | **5/5 (100%)** |
-| **Regression Rate · 退化率** | **0/5 (0%)** |
+| Aggregate · 汇总 (L1 only) | Value |
+|----------------------------|-------|
+| **Mean L1 · 平均结构分** | **90.5 (A-)** |
+| **L1 Range · 范围** | B (86.0) → A+ (100.0) |
+| **L2 verified · L2已验证** | 1/5 |
 
-### Key Findings · 核心发现
+### What's real vs pending · 真实 vs 待验证
 
-1. **全部正向** — 5 个 skill 在其核心约束上全部产生正向行为改变，无一例退化
-2. **MUST/MUST NOT 指令型 Δ 更高** — 明确行为指令型 skill 平均 Δ = +28.3，流程型平均 Δ = +15.0
-3. **缺少 tests.md 是最常见问题** — 3/5 skill 缺少测试场景文件
-4. **OVER_CONSTRAINED 在行为型 skill 中可接受** — 纯行为约束型 skill 天然需要更多指令
+| Data | Status |
+|------|--------|
+| L1 structural (all 5) | ✅ **Real** — 21 checks + 11 anti-patterns, actual files fetched and checked |
+| L2 behavioral (eight-principles) | ✅ **Real** — 19 API calls, tool-enabled agent loop, blind judged |
+| L2 behavioral (other 4) | ⏳ **Pending** — `run_l2.py` ready, needs ~$0.04 total to complete |
 
-Full batch report · 完整批量报告: [`evals/batch-report.md`](evals/batch-report.md)
+### Key L1 Findings · L1 核心发现（真实）
 
-### Per-Skill Highlights · 逐技能亮点
+1. **Missing tests.md is #1 failure** — 3/5 skills lack it
+2. **OVER_CONSTRAINED common in behavioral skills** — defensible for this type
+3. **skill-creator (Anthropic) is the only A+** — 21/21 checks, 0 anti-patterns
 
-<details>
-<summary><b>eight-principles · 八荣八耻</b> — Δ +41（最高）</summary>
+### Verified L2 Finding · 已验证 L2（八荣八耻 only）
 
-- L1: A- (90.0) · 25 条 MUST/MUST NOT · 2 anti-patterns
-- 测试约束 "分步迭代": Bare 上来就列代码清单 → Armed 先读 CLAUDE.md，拒绝批量改，提 4 个澄清问题，给分步计划
-- 最有效的行为改变: 从 batch chaos → ordered decomposition
-- 报告: [`evals/eight-principles/report.md`](evals/eight-principles/report.md)
-</details>
+The skill produces large, measurable behavioral improvement when the model can execute its directives:
 
-<details>
-<summary><b>ai-coding-discipline · AI编码纪律</b> — Δ +22</summary>
+| Constraint | Δ | What changed |
+|------------|-----|-------------|
+| 查档求证 | +34 | Guessing APIs → searching + citing sources |
+| 分步迭代 | +41 | Bulk changes → ordered decomposition |
 
-- L1: B (86.0) · 6 条规则 · 1 anti-pattern (OVER_CONSTRAINED)
-- 测试约束 "No Silent Fallbacks": Bare 用 `??` 掩码 null → Armed 抛出明确 Error
-- 最有效的行为改变: 从 silent masking → fail-fast
-- 报告: [`evals/ai-coding-discipline/report.md`](evals/ai-coding-discipline/report.md)
-</details>
-
-<details>
-<summary><b>improving-skills · 技能迭代器</b> — Δ +23</summary>
-
-- L1: A- (90.5) · 0 anti-patterns
-- 测试约束 "keep/revert loop": Bare 凭感觉改 → Armed 评分基线→改→重评分→分数降了就 revert
-- 最有效的行为改变: 从 subjective edits → score-gated iteration
-- 报告: [`evals/improving-skills/report.md`](evals/improving-skills/report.md)
-</details>
-
-<details>
-<summary><b>skill-engineering · 技能工程设计</b> — Δ +16</summary>
-
-- L1: B (86.0) · 1 anti-pattern (CLAUDE_TOOL_REFS)
-- 测试约束 "self-sufficiency": Bare 把关键指令放进 references/ → Armed 确保 SKILL.md 本身可独立执行
-- 最有效的行为改变: 从 reference-dependent → self-sufficient
-- 报告: [`evals/skill-engineering/report.md`](evals/skill-engineering/report.md)
-</details>
-
-<details>
-<summary><b>skill-creator · 技能创建器</b> — Δ +14（流程型，预期较低）</summary>
-
-- L1: A+ (100.0) · 0 anti-patterns · Anthropic 官方出品
-- 测试约束 "eval before publish": Bare 直接说"ship it" → Armed 先生成测试 prompt，跑评估，确认再发布
-- 最有效的行为改变: 从 ship-then-pray → evaluate-then-ship
-- 报告: [`evals/skill-creator/report.md`](evals/skill-creator/report.md)
-</details>
+Full batch report · 完整报告: [`evals/batch-report.md`](evals/batch-report.md)
 
 ---
 

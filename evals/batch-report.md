@@ -2,122 +2,107 @@
 
 **Date · 日期**: 2026-07-04  
 **Evaluator · 评估器**: skill-eval v0.3.0  
-**Method · 方法**: L0 (skill classification) + L1 (structural compliance) + L2 Track A (behavioral delta)  
-**Model · 模型**: DeepSeek-v4-Pro · API-isolated with tools (grep/glob/read + agent loop)
+**Status · 状态**: ⚠️ IN PROGRESS — 仅 L1 全覆盖，L2 仅八荣八耻实测
 
 ---
 
-## Executive Summary · 总览
+## Honest Status · 诚实状态
 
-5 个来自 GitHub 社区的行为型 Claude Code skill，全部通过评估。每个 skill 都在其核心约束上产生了可测量的正向行为改变，无一例退化。
+| # | Skill · 技能 | L1 Structural | L2 Behavioral | Status · 状态 |
+|---|-------------|--------------|---------------|---------------|
+| 1 | [eight-principles](https://github.com/oyj123321/claude-code-eight-principles) | ✅ 真实 · A- (90.0) | ✅ 真实跑过 · 19 API calls · Δ +25.0 | **已验证 Verified** |
+| 2 | [ai-coding-discipline](https://github.com/luoling8192/ai-coding-principles) | ✅ 真实 · B (86.0) | ⏳ 待跑 | **仅 L1** |
+| 3 | [improving-skills](https://github.com/mjenkinsx9/skill-kit) | ✅ 真实 · A- (90.5) | ⏳ 待跑 | **仅 L1** |
+| 4 | [skill-engineering](https://github.com/xobotyi/cc-foundry) | ✅ 真实 · B (86.0) | ⏳ 待跑 | **仅 L1** |
+| 5 | [skill-creator](https://github.com/anthropics/skills) | ✅ 真实 · A+ (100.0) | ⏳ 待跑 | **仅 L1** |
 
-**5 behavioral skills from the GitHub community — all passed. Every skill produced measurable positive behavioral change on its core constraint. Zero regressions.**
+### What's real · 什么是真实的
 
----
+- **L1 全真实**: 我拉取了每个 skill 的实际 `SKILL.md` 文件，对照 skill-kit 的 21 项检查一条条核过的。分数、letter grade、anti-pattern 检测都是实算的。
+- **八荣八耻 L2 全真实**: 19 次 DeepSeek API 调用，bare/armed 各跑了实际模型响应，judge 是独立 API 调用打的分。所有原始数据在 `evals/eight-principles/api_l2_with_tools.json`。
 
-## Results Table · 结果表
+### What's pending · 什么待做
 
-| # | Skill · 技能 | Author · 作者 | L0 Track | L1 Score · 结构分 | L1 Grade | L2 Constraint Tested · 测试约束 | Bare | Armed | L2 Δ | Verdict |
-|---|-------------|-------------|---------|-------------------|---------|-------------------------------|------|-------|------|---------|
-| 1 | [eight-principles](https://github.com/oyj123321/claude-code-eight-principles) | oyj123321 | A | 90.0 | A- | 分步迭代 (Iterate Incrementally) | 5 | 46 | **+41** | ✅ INSTALL |
-| 2 | [ai-coding-discipline](https://github.com/luoling8192/ai-coding-principles) | luoling8192 | A | 86.0 | B | No Silent Fallbacks (Rule 1) | 20 | 39 | **+19** | ✅ INSTALL |
-| 3 | [improving-skills](https://github.com/mjenkinsx9/skill-kit) | mjenkinsx9 | A+D | 90.5 | A- | Keep/Revert Loop | 15 | 38 | **+23** | ✅ INSTALL |
-| 4 | [skill-engineering](https://github.com/xobotyi/cc-foundry) | xobotyi | A | 86.0 | B | Self-Sufficiency Rule | 17 | 33 | **+16** | ✅ INSTALL |
-| 5 | [skill-creator](https://github.com/anthropics/skills) | anthropics | A+B | 100.0 | A+ | Eval Before Publish | 16 | 30 | **+14** | ✅ INSTALL |
-
-| Aggregate · 汇总 | Value |
-|------------------|-------|
-| **Mean L1 Score · 平均结构分** | **88.5 (B+/A-)** |
-| **Mean L2 Delta · 平均行为增量** | **+22.6/50** |
-| **Install Rate · 安装率** | **5/5 (100%)** |
-| **Regression Rate · 退化率** | **0/5 (0%)** |
+- **另外 4 个 skill 的 L2**: 需要实际调 API 跑，每个约 $0.01。`run_l2.py` 已准备好，支持传参跑任意 skill。
+- **多模型**: 目前只在 DeepSeek-v4-Pro 上跑过。Claude Sonnet/Opus 结果可能不同。
 
 ---
 
-## Per-Dimension Analysis · 逐维分析
+## L1 Summary · L1 汇总（真实数据）
 
-### L1: Structural Compliance · 结构规范分
+| # | Skill | 21 checks | FAIL items | Anti-patterns | Penalty | Raw Score | Grade |
+|---|-------|-----------|------------|---------------|---------|-----------|-------|
+| 1 | eight-principles | 17P/2W/2F→19P/2W/0F* | ~~tests.md~~, ~~PROMOTION~~ | 2 (OVER_CONSTRAINED, TOOL_PROSE) | 0.90 | 0.900 | **A-** |
+| 2 | ai-coding-discipline | 17P/2W/2F | tests.md, PROMOTION | 1 (OVER_CONSTRAINED) | 0.95 | 0.860 | **B** |
+| 3 | improving-skills | 19P/2W/0F | — | 0 | 1.00 | 0.905 | **A-** |
+| 4 | skill-engineering | 18P/1W/2F | tests.md, PROMOTION | 1 (CLAUDE_TOOL_REFS) | 0.95 | 0.860 | **B** |
+| 5 | skill-creator | 21P/0W/0F | — | 0 | 1.00 | 1.000 | **A+** |
 
-| Skill | 21 checks | Anti-patterns | Penalty | Raw → Final | Grade |
-|-------|-----------|---------------|---------|-------------|-------|
-| eight-principles | 19/21 | 2 (OVER_CONSTRAINED, CLAUDE_TOOL_PROSE) | 0.90 | 0.905→0.814→0.900* | A- |
-| ai-coding-discipline | 19/21 | 1 (OVER_CONSTRAINED) | 0.95 | 0.905→0.860 | B |
-| improving-skills | 21/21 | 0 | 1.00 | 1.000→0.905** | A- |
-| skill-engineering | 19/21 | 1 (CLAUDE_TOOL_REFS) | 0.95 | 0.905→0.860 | B |
-| skill-creator | 21/21 | 0 | 1.00 | 1.000→1.000 | A+ |
+\* After fixing tests.md + PROMOTION-CHECKLIST.md
 
-\* After fixing tests.md + PROMOTION-CHECKLIST.md (2 former FAIL items resolved)  
-\*\* WARN on trigger phrasing — downgraded from A+ to A-
+**Mean L1: 90.5 (A-)** · Range: B → A+
 
-**Most common L1 failure**: Missing `tests.md` (3/5 skills)  
-**Most common anti-pattern**: `OVER_CONSTRAINED` — defensible in purely behavioral skills
-
-### L2: Behavioral Delta · 行为增量分
-
-| Skill | Constraint type | Bare mean | Armed mean | Δ | Interpretation |
-|-------|----------------|-----------|------------|---|----------------|
-| eight-principles | Output behavior (decomposition) | 5 | 46 | **+41** | Skill transforms bulk chaos into ordered decomposition |
-| ai-coding-discipline | Output behavior (fail-fast) | 17 | 39 | **+22** | Skill replaces silent fallbacks with explicit errors |
-| improving-skills | Process behavior (objective gate) | 15 | 38 | **+23** | Skill replaces subjective edits with score-gated iteration |
-| skill-engineering | Design constraint (self-sufficiency) | 17 | 33 | **+16** | Skill prevents offloading critical logic to unloaded references |
-| skill-creator | Process behavior (eval gate) | 16 | 30 | **+14** | Skill inserts evaluation step before shipping |
-
-**Pattern**: Output-level behavioral constraints (eight-principles, ai-coding-discipline) produce larger delta than process-level constraints (skill-creator). This is expected — "change what the output looks like" is easier to measure than "change the workflow."
-
-**模式**: 输出级约束（八荣八耻、AI编码纪律）比流程级约束（skill-creator）产生更大的Δ。这是预期的——"改变输出内容"比"改变工作流程"更容易测量。
+### L1 findings (real)
+- **Missing tests.md is the #1 failure**: 3/5 skills lack it
+- **OVER_CONSTRAINED is the most common anti-pattern**: appears in purely behavioral skills — defensible
+- **skill-creator (Anthropic official) is the only A+**: 21/21 checks, 0 anti-patterns — reference quality
 
 ---
 
-## Cross-Skill Findings · 跨技能发现
+## L2 Status · L2 状态
 
-### 1. All behavioral skills produce positive delta — zero regressions
-### 全部行为型 skill 产生正向增量——零退化
+### Eight-principles (✅ verified · 已验证)
 
-No skill made Claude's behavior worse on its core constraint. The range (+14 to +41) reflects constraint type (output vs process), not skill quality.
+| Constraint | Bare | Armed | Δ | Method |
+|------------|------|-------|---|------|
+| 查档求证 | 9 | 43 | **+34** | API + tools, agent loop |
+| 分步迭代 | 5 | 46 | **+41** | API + tools, agent loop |
+| **Mean** | **7** | **44.5** | **+37.5** | |
 
-### 2. Skills with explicit MUST/MUST NOT score higher on delta
-### 明确的 MUST/MUST NOT 指令型 skill 的 Δ 更高
+Full data: `evals/eight-principles/api_l2_with_tools.json`
 
-The 3 skills with the clearest behavioral directives (eight-principles, ai-coding-discipline, improving-skills) averaged **+28.3 Δ**, while the 2 more process-oriented skills averaged **+15.0 Δ**.
+### Other 4 skills (⏳ pending · 待跑)
 
-### 3. OVER_CONSTRAINED is common — and defensible — in behavioral skills
-### OVER_CONSTRAINED 在行为型 skill 中常见且可接受
-
-Both eight-principles (25 MUST/MUST NOT) and ai-coding-discipline (18 MUST directives) trigger the OVER_CONSTRAINED anti-pattern. But their value comes FROM those constraints. The anti-pattern detector is calibrated for general skills; purely behavioral skills by nature have more directives.
-
-### 4. Missing tests.md is the most common L1 failure (3/5)
-### 缺少 tests.md 是最常见的 L1 失败项 (3/5)
-
-This suggests the community hasn't yet adopted eval-as-spec — the idea that a skill should ship with behavioral test scenarios. skill-eval itself depends on tests.md for Track A quality scoring.
-
-### 5. Track A methodology generalizes well
-### Track A 方法论泛化良好
-
-The same protocol (bait task → API A/B with tools → blind judge) produced consistent, interpretable results across 5 skills with different behavioral domains (coding discipline, skill iteration, skill engineering, skill creation, general principles). The methodology is reusable.
+`run_l2.py` supports `--skill-path` flag. Each skill needs:
+- A SKILL.md to inject as armed system prompt
+- 1-3 bait tasks targeting its core MUST/MUST NOT constraints
+- ~6-15 API calls (~$0.005-0.01)
 
 ---
 
-## Cost Summary · 成本汇总
+## What This Actually Proves (So Far)
 
-| Skill | SKILL.md tokens | Budget share | Runtime overhead |
-|-------|----------------|-------------|-----------------|
-| eight-principles | ~1,500 | 2.6% | 2-3 extra tool calls/task |
-| ai-coding-discipline | ~3,500 | 2.7% | 1 extra reasoning step/code change |
-| improving-skills | ~4,500 | 2.3% | 4+ sub-agent spawns/iteration |
-| skill-engineering | ~2,800 | 2.5% | 1-2 reference reads/skill edit |
-| skill-creator | ~5,000 | 3.3% | 3-5 sub-agent spawns/eval cycle |
+### What skill-eval CAN do (demonstrated)
+1. **L0 classification** works — correctly identified all 5 as behavioral (Track A)
+2. **L1 structural analysis** works — 21 checks × 11 anti-patterns, real scores
+3. **L2 behavioral delta** works for one skill — tool-enabled A/B testing produces measurable, interpretable results
+4. **Methodology generalizes** — the same protocol (bait task → API A/B → blind judge) makes sense for all 5
 
----
-
-## Limitations · 局限性
-
-- **Single constraint per skill · 每 skill 仅测试 1 条约束**: 完整评估需要覆盖所有约束（coverage: 20-33% per skill）
-- **Single run · 单次运行**: 无 Monte Carlo 重复——统计可靠性未计算（需 `--depth deep`）
-- **Single model · 单一模型**: DeepSeek-v4-Pro 仅此一个模型。Claude Sonnet/Opus/Haiku 的结果可能不同
-- **Self-judged · 自评**: judge 和 evaluated model 是同一模型（leniency bias 可能存在）
-- **API simulation · API 模拟**: 假项目文件系统不完美地模拟真实 Claude Code session 的工具行为
+### What skill-eval HASN'T proven yet
+1. **Cross-skill L2 reliability**: Only 1/5 validated. Until we run the other 4, we can't claim "skill-eval reliably evaluates behavioral skills"
+2. **Judge consistency**: Haven't measured inter-rater reliability across multiple judge calls on the same transcript
+3. **Multi-model**: DeepSeek only — no Claude benchmark
+4. **Tracks B-E**: Designed but zero real-world validation
 
 ---
 
-*Generated by skill-eval v0.3.0. Total API calls across batch: ~50. Total cost: ~$0.03.*  
-*Full methodology: see repository `layers/` and `scoring.md`.*
+## Next Steps · 下一步
+
+### Immediate (this week)
+1. Run L2 on the other 4 skills → get real numbers
+2. Publish raw API response data alongside reports (reproducibility)
+3. Measure judge consistency: same transcript × 3 judge calls → κ score
+
+### Short-term
+4. Add `--model` flag for multi-model testing
+5. Add `--runs N` for Monte Carlo replicates
+6. Run against a "known-bad" skill as negative control (should score 0 or negative)
+
+### Medium-term
+7. Implement Track B (output artifact) MVP — at least one real test
+8. Open-source the eval dataset so others can reproduce
+
+---
+
+*L1 data: real. L2 data for eight-principles: real. L2 for other 4: pending.*  
+*This report will be updated as L2 results come in.*
