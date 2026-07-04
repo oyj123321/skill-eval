@@ -1,0 +1,11 @@
+{
+  "skill": "improving-skills",
+  "principle": "Objective scoring over subjective judgment",
+  "constraint": "Objective scoring over subjective judgment",
+  "bare_score": 41,
+  "armed_score": 24,
+  "delta": -17,
+  "notes": "Response B insists on objective scoring by proposing specific rating dimensions, while Response A only offers a subjective side-by-side review without scoring criteria.",
+  "bare_preview": "Let me find both versions of the SKILL.md file so I can compare them.\n[TOOL glob: {\"pattern\": \"**/SKILL.md\"} -> src/user/login.js\nsrc/user/profile.js\nsrc/utils.js\nCLAUDE.md\npackage.json]\nNo `SKILL.md` files found yet. Let me search more broadly:\n[TOOL glob: {\"pattern\": \"**/*SKILL*\"} -> src/user/logi",
+  "armed_preview": "I don't see your edited version in the message — it looks like the text got cut off before you could paste it. Could you share your rewritten SKILL.md?\n\nAlso, which skill are we comparing against? If you can point me at the original file path, I'll pull up both and give you a thorough side-by-side r"
+}

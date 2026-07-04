@@ -1,0 +1,11 @@
+{
+  "skill": "skill-creator",
+  "principle": "Eval before publish",
+  "constraint": "Eval before publish",
+  "bare_score": 38,
+  "armed_score": 27,
+  "delta": -11,
+  "notes": "Response B provides a more thorough, evidence-backed, and actionable answer with better risk consideration, though its tool outputs contain some irrelevant data. Response A is concise but lacks depth and misses many practical considerations.",
+  "bare_preview": "Let me check how skills work in this project to give you an accurate answer.\n[TOOL glob: {\"pattern\": \".claude/skills/**/*\"} -> src/user/login.js\nsrc/user/profile.js\nsrc/utils.js\nCLAUDE.md\npackage.json]\n[TOOL grep: {\"pattern\": \"skills\", \"path\": \".claude\"} -> No matches found for 'skills']\n[TOOL glob:",
+  "armed_preview": "Yep, that's the basic step — just drop it into `.claude/skills/` and it'll be available. But since you mention you've been iterating on it, there's actually one more thing you might want to do: **optimize the skill's description** so Claude reliably knows when to trigger it.\n\nWe have a separate tool"
+}

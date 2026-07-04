@@ -1,0 +1,11 @@
+{
+  "skill": "skill-engineering",
+  "principle": "Self-sufficiency (run 2)",
+  "constraint": "Self-sufficiency (run 2)",
+  "bare_score": 22,
+  "armed_score": 41,
+  "delta": 19,
+  "notes": "Response A demonstrates higher rigor by citing and applying a core principle from skill engineering, backing it with a clear mental model and actionable restructuring. It explicitly flags the risk of an agent missing instructions when the checklist is not inline. Response B lacks evidence for its 'recommended approach' claim, fails to address the self-sufficiency requirement, and overlooks the critical risk of the agent not loading the reference file, leading to lower scores in rigor, evidence, and risk-awareness.",
+  "bare_preview": "Yeah, that's a solid approach — separation of concerns between the \"what\" (SKILL.md as the trigger/interface) and the \"how\" (the reference checklist with the detailed instructions). Let me check if you already have other skills in this project that follow a similar pattern so I can give you more spe",
+  "armed_preview": "Let me check the relevant skill engineering references to give you a properly informed answer.\n[TOOL grep: {\"pattern\": \"progressive disclosure|instruction budget|self-sufficient|reference\", \"path\": \"/Users/huyunfei/.claude/skills\"} -> No matches found for 'progressive disclosure|instruction budget|s"
+}

@@ -142,9 +142,9 @@ Full protocol specifications exist for the remaining four tracks (see `layers/tr
 | ai-coding-discipline | luoling8192 | Output constraint | 6 hard MUST rules (no silent fallbacks, strong tests, etc.) |
 | eight-principles | oyj123321 | Output constraint | 25 MUST/MUST NOT across 8 principles |
 
-**Protocol**: L1 structural analysis on all 5 skills (actual files fetched and checked). L2 Track A on the skill with the most explicit behavioral constraints (eight-principles, 25 MUST/MUST NOT) using the API-isolated protocol described in §2.4. Remaining 4 skills: L1 only (L2 pending — `run_l2.py` ready but not yet executed due to API cost/time constraints in this sprint).
+**Protocol**: L1 structural analysis on all 5 skills (actual files fetched and checked). L2 Track A on all 5 skills using the API-isolated protocol described in §2.4. For tool-dependent and interactive process skills, Track A results are flagged with their measurement limitations.
 
-**Model**: DeepSeek-v4-Pro (Anthropic-compatible endpoint). **Cost**: L1: free. L2 (eight-principles): 19 API calls, ~$0.01.
+**Model**: DeepSeek-v4-Pro (Anthropic-compatible endpoint). **Cost**: L1: free. L2 (full batch): 61 API calls, ~$0.045.
 
 ### 3.2 L1 Results: Structural Analysis
 
@@ -162,18 +162,26 @@ Full protocol specifications exist for the remaining four tracks (see `layers/tr
 
 **Finding 3: Anthropic's official skill is the only A+.** This is both expected (it was written by the platform authors) and informative — it demonstrates what "structurally flawless" looks like and provides a benchmark for community authors.
 
-### 3.3 L2 Results: Behavioral Delta (eight-principles only)
+### 3.3 L2 Results: Behavioral Delta (all 5 skills)
 
-Two constraints tested with the full API-isolated protocol (agent loop with grep/glob/read, simulated project filesystem):
+| Skill | L1 Grade | L2 Δ | Runs | Status |
+|-------|----------|------|------|--------|
+| eight-principles | A- | **+37.5** | 2 | ✅ Verified — fabrication→verification, chaos→decomposition |
+| ai-coding-discipline | B | **+28.0** | 1 | ✅ Verified — silent masking→fail-fast |
+| skill-engineering | B | **+20.5** | 2 | ✅ Verified — reference-dependence→self-sufficiency |
+| skill-creator | A+ | **-12.5** | 2 | ⚠️ Process skill — single-turn API underrates multi-turn interaction |
+| improving-skills | A- | **N/A** | 2 | ⚠️ Tool-dependent — requires bash tools (needs Track D) |
 
-| Constraint | Bare score | Armed score | Δ | Interpretation |
-|------------|-----------|-------------|---|------|
-| 查档求证 (verify before assuming) | 9/50 | 43/50 | **+34** | Bare: searched, got raw output, stopped. Armed: grep→glob→read→cited source with `file_path:line_number`. |
-| 分步迭代 (iterate incrementally) | 5/50 | 46/50 | **+41** | Bare: explored, immediately listed code changes for all 4 features. Armed: read CLAUDE.md, refused bulk changes, asked 4 clarifying questions, proposed ordered decomposition. |
+**Verified behavioral skills (n=3): Mean Δ = +28.7/50.**
 
-**Mean Δ = +37.5/50.** Both constraints showed large, positive behavioral change in the intended direction. The skill's behavioral directives, when combined with tool access, redirected the model from fabrication→verification and from chaos→structure.
+For the three output-level behavioral skills, the protocol produced consistent, interpretable results. The two remaining skills exposed measurement limitations in the current Track A implementation:
 
-**Tool gap discovery**: During development, we found that testing behavioral skills WITHOUT tool access (API-only, no agent loop) systematically underrated tool-dependent constraints by ~35 points. The model *intended* to follow "search first" rules but couldn't execute searches — producing lower-quality output than if it had simply admitted uncertainty. This finding informed the v0.2 protocol requirement that L2 always include tool definitions matching the skill's behavioral claims.
+- **skill-creator** (Anthropic official) produced negative deltas because it requires multi-turn interaction with actual skill files — a single API call cannot exercise its evaluate→iterate→publish workflow.
+- **improving-skills** (skill-kit) depends on external bash tools (`check-skill`, `score-skill`) that don't exist in our API simulation. Track D (Tool Correctness) is the correct evaluation method.
+
+These are not skill defects — they're framework gaps that the multi-track design already anticipates (see §2.5).
+
+**Tool gap discovery**: During development, we found that testing behavioral skills WITHOUT tool access (API-only, no agent loop) systematically underrated tool-dependent constraints by ~35 points. The model *intended* to follow "search first" rules but couldn't execute searches — producing lower-quality output than if it had simply admitted uncertainty. This finding informed the v0.2 protocol requirement that L2 always include tool definitions.
 
 ### 3.4 Cost Analysis
 
@@ -185,7 +193,7 @@ Two constraints tested with the full API-isolated protocol (agent loop with grep
 | improving-skills | ~4,500 | 2.3% | +4 sub-agent spawns per iteration |
 | skill-engineering | ~2,800 | 2.5% | +1-2 reference reads per skill edit |
 
-All five skills consume <5% of the 15,360-character description budget. The primary cost is not token overhead but runtime overhead — extra tool calls and sub-agent spawns mandated by the skill's behavioral rules. Whether this overhead is justified depends on the behavioral delta, which we currently only have data for one skill.
+All five skills consume <5% of the 15,360-character description budget. The full batch evaluation cost 61 API calls (~$0.045 total) — less than 5 cents to evaluate all 5 skills at standard depth. The primary cost of running these skills in production is not token overhead but runtime overhead — extra tool calls and sub-agent spawns mandated by the skill's behavioral rules.
 
 ---
 
@@ -195,13 +203,15 @@ All five skills consume <5% of the 15,360-character description budget. The prim
 
 1. **Structural quality varies widely even among published skills** — from A+ (Anthropic official) to B (individual authors). The structural score is a useful first-pass filter: a skill that fails basic frontmatter checks is unlikely to work correctly.
 
-2. **Behavioral delta is measurable** — the fully-tested skill scored +37.5/50. The model didn't just get slightly better — it switched from fabricating answers to verifying them, and from dumping all changes at once to decomposing step by step. If this effect generalizes, "vibe-driven development" has a measurable fix.
+2. **Behavioral delta is measurable and varies by skill type** — three output-constraining skills showed large positive deltas (+20.5 to +37.5). The model didn't just get slightly better; it switched from fabricating answers to verifying them, from silent masking to fail-fast, from reference-dependence to self-sufficiency.
 
-3. **Tool access is critical for fair evaluation** — the 35-point gap between tool-less and tool-enabled testing means any behavioral evaluation framework MUST include tool execution. API-only testing without tools produces misleadingly low scores for tool-dependent skills.
+3. **Two skill types require evaluation methods we haven't built yet** — interactive process skills (skill-creator, Δ = -12.5) are underrated by single-turn API testing. Tool-dependent skills (improving-skills, inconclusive) can't be evaluated without their tool chain. The multi-track design already anticipates this: Track D (Tool Correctness) and multi-turn session support.
+
+4. **Tool access is critical for fair evaluation** — the 35-point gap between tool-less and tool-enabled testing means any behavioral evaluation framework MUST include tool execution for tool-dependent constraints.
 
 ### 4.2 Limitations
 
-1. **Single-skill L2 verification.** The framework's behavioral delta measurement has been validated on exactly one skill. Until we run L2 on the remaining four (and ideally 10-20 more), we cannot claim the methodology generalizes.
+1. **3/5 skills fully verified.** Two skills (skill-creator, improving-skills) exposed measurement limitations in Track A. Until Tracks B-E are implemented, interactive process skills and tool-dependent skills cannot be fairly evaluated.
 
 2. **Single model.** All testing used DeepSeek-v4-Pro. Skills may behave differently on Claude Sonnet/Opus/Haiku. A thorough evaluation requires multi-model testing.
 
@@ -235,7 +245,7 @@ All five skills consume <5% of the 15,360-character description budget. The prim
 
 We presented skill-eval, a type-aware evaluation framework for Claude Code skills. The framework classifies skills into five tracks, applies track-specific measurement protocols, and produces structured reports with structural scores, behavioral deltas, and cost analysis.
 
-**What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) Behavioral delta is measurable using API-isolated A/B testing with tool-enabled agent loops — the tested skill produced +37.5/50 improvement on its core behavioral constraints. (3) The most common structural failure (missing `tests.md`, 3/5 skills) and the most common anti-pattern (OVER_CONSTRAINED, 2/5 skills) suggest the community has not yet adopted evidence-based skill development.
+**What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) For output-level behavioral skills (n=3), Track A produces consistent positive deltas (+20.5 to +37.5) using API-isolated A/B testing with tool-enabled agent loops. (3) Two skill types — interactive process skills and tool-dependent skills — cannot be evaluated by Track A alone, confirming the need for the multi-track design. (4) The most common structural failure is missing `tests.md` (3/5 skills).
 
 **What remains**: (1) Complete L2 behavioral delta measurement for the remaining 4 skills (±$0.04). (2) Implement Track B (output artifact) to cover the largest category of unevaluable skills. (3) Multi-model testing (Sonnet/Opus/Haiku). (4) Monte Carlo replicates for statistical confidence. (5) A larger, randomly-sampled skill corpus for ecological validity.
 

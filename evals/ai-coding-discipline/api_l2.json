@@ -1,0 +1,11 @@
+{
+  "skill": "ai-coding-discipline",
+  "principle": "Rule 1: No Silent Fallbacks",
+  "constraint": "Rule 1: No Silent Fallbacks",
+  "bare_score": 11,
+  "armed_score": 39,
+  "delta": 28,
+  "notes": "Response A does not fail-fast; it silently returns 'Unknown', directly contradicting the requirement. Response B avoids silent fallback and explains design choices, but it fails-fast only on a missing name, not on a null user (returns undefined instead of throwing), so it only partially meets the 'fail-fast on null user' directive. It demonstrates stronger reasoning and risk awareness.",
+  "bare_preview": "```typescript\nfunction getUserName(user: { name?: string } | null | undefined): string {\n    return user?.name ?? \"Unknown\";\n}\n```\n\n**How it works:**\n\n- **`user?.name`** — Uses optional chaining. If `user` is `null` or `undefined`, the whole expression short-circuits and returns `undefined` instead ",
+  "armed_preview": "Here's the function:\n\n```typescript\ntype User = {\n  name: string;\n};\n\nfunction getUserName(user: User | null | undefined): string | undefined {\n  if (user == null) {\n    return undefined;\n  }\n\n  if (user.name == null) {\n    throw new Error(\"User is missing a name — data contract violated\");\n  }\n\n  r"
+}

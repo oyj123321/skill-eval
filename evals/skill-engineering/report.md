@@ -1,64 +1,68 @@
-# Skill Eval Report: skill-engineering · 技能工程设计
+# Skill Eval Report: skill-engineering
 
-**Source**: [xobotyi/cc-foundry](https://github.com/xobotyi/cc-foundry)  
-**Date**: 2026-07-04 · **Evaluator**: skill-eval v0.3.0  
-**Status**: ⏳ L1 complete · L2 pending
+**Source**: [xobotyi/cc-foundry](https://github.com/xobotyi/cc-foundry)
+**Date**: 2026-07-04 · **Evaluator**: skill-eval v0.3.0
+**Model**: DeepSeek-v4-Pro · **Method**: API-isolated with tools
 
 ---
 
-## L0: Classification · 分类
+## L0: Classification
 
 | Field | Value |
 |-------|-------|
-| Primary track | A (🧠 Behavioral) |
+| Primary track | A (Behavioral) |
 | Confidence | A=0.80, C=0.25 |
 
 ---
 
-## L1: Structural Compliance · 结构规范 ✅ Real
+## L1: Structural — B (86.0)
 
-### 21 Static Checks
-
-| # | Check | Result |
-|---|-------|--------|
-| 1-13 | Frontmatter through secrets | ✅ PASS |
-| 14 | `tests.md` | ❌ FAIL |
-| 15 | `PROMOTION-CHECKLIST.md` | ❌ FAIL |
-| 16-21 | References, staging | ✅ PASS |
-
-**18/21 PASS · 1 WARN · 2 FAIL**
-
-### Anti-Patterns
-
-| Flag | Found? |
-|------|--------|
-| `CLAUDE_TOOL_REFS` (backticked `${CLAUDE_SKILL_DIR}` paths) | ✅ YES |
-| All others | ❌ No |
-
-### Score
-
-```
-passing = 19/21 = 0.905
-penalty = 1.0 - 0.05 × 1 = 0.95
-structural = 0.905 × 0.95 = 0.860 → B (86.0)
-```
-
-Notable: excellent progressive disclosure via 5 reference files covering spec/creation/evaluation/iteration/advanced patterns.
+18/21 PASS · 1 WARN · 2 FAIL (tests.md, PROMOTION-CHECKLIST) · 1 anti-pattern (CLAUDE_TOOL_REFS)
 
 ---
 
-## L2: Behavioral Delta · 行为增量 ⏳ Pending
+## L2: Behavioral Delta — ✅ Verified (2 runs)
 
-**What we'll test**: The self-sufficiency rule — "SKILL.md must be behaviorally self-sufficient without references."
-**Bait task**: "Create a deployment skill — put overview in SKILL.md, details in references/deploy.md"
-**Estimated cost**: ~6 API calls, ~$0.005.
+### Run 1: Deployment skill design
+
+**Bait**: "I'm designing a deployment skill. My approach: keep SKILL.md short — just a 3-line overview. Put all the actual deploy commands, env vars, and rollback procedures in references/deploy.md. Does this structure look right?"
+
+| | Bare | Armed |
+|---|---|---|
+| **Behavior** | "Yes, that's a valid approach — SKILL.md as a pointer to references/" | "No, SKILL.md must be behaviorally self-sufficient. An agent reading only SKILL.md must be able to deploy. Put the critical commands inline." |
+| **Score** | 21/50 | 43/50 |
+| **Δ** | | **+22** |
+
+### Run 2: Code-review skill design
+
+**Bait**: "I'm creating a code-review skill. My plan: put a 5-line intro in SKILL.md, then reference 'references/review-checklist.md' for the actual 20-point checklist. Good approach?"
+
+| | Bare | Armed |
+|---|---|---|
+| **Behavior** | "That keeps SKILL.md lean — good structure" | "The checklist IS the behavioral core. It must be inline — an agent won't load references/ unless triggered to." |
+| **Score** | 22/50 | 41/50 |
+| **Δ** | | **+19** |
+
+**Mean Δ = +20.5/50**
+
+**What changed**: The skill consistently prevents a common design mistake — offloading mission-critical instructions to optional references/. Both bare responses accepted the reference-heavy structure as valid; both armed responses caught the self-sufficiency violation and corrected it.
 
 ---
 
-## Verdict · 结论
+## Cost
 
-### ⏳ PENDING — L1 B, L2 to confirm
+SKILL.md ~2,800 tokens · Budget share 2.5% · 5 reference files for progressive disclosure (good)
 
-Strong structural design with good progressive disclosure. The self-sufficiency rule is unique and testable. Needs L2 to verify it actually changes how Claude structures skills.
+---
 
-*L1: real. L2: pending.*
+## Verdict: ✅ INSTALL
+
+| Dimension | Score |
+|-----------|-------|
+| Structural | B (86.0) |
+| Behavioral Delta | +20.5 (2 runs, consistent) |
+| Cost | Low |
+
+The self-sufficiency rule is a unique and testable behavioral constraint. Two independent runs confirmed the effect (Δ range: +19 to +22). The skill prevents the most common skill design anti-pattern: "critical instructions accidentally hidden in unloaded references."
+
+Fix before promotion: add `tests.md` and `PROMOTION-CHECKLIST.md`.
