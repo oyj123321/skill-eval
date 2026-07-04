@@ -1,45 +1,144 @@
-# Skill Eval Report: skill-creator
+# Skill Eval Report: skill-creator · 技能创建器
 
-**Source**: [anthropics/skills](https://github.com/anthropics/skills)
-**Date**: 2026-07-04 · **Depth**: standard · **Model**: DeepSeek-v4-Pro
+**Source**: [anthropics/skills](https://github.com/anthropics/skills)  
+**Date**: 2026-07-04 · **Depth**: standard · **Evaluator**: skill-eval v0.3.0  
+**Model**: DeepSeek-v4-Pro · **Method**: API-isolated (Anthropic-compatible endpoint, with tools)
 
-## L0: Classification
-- **Primary track**: A (Behavioral — process directives)
-- **Secondary**: B (Output — produces eval reports)
-- **Confidence**: A=0.75, B=0.40
+---
 
-## L1: Structural Compliance
+## L0: Skill Classification · 技能分类
 
-| Check | Result |
-|-------|--------|
-| 21 static checks | 21 PASS, 0 WARN, 0 FAIL |
-| Anti-patterns | 0 |
+| Field | Value |
+|-------|-------|
+| Primary track | A (🧠 Behavioral · 行为型 — 创建流程的行为约束) |
+| Secondary track | B (🎨 Output Artifact · 产出物型 — 产出 eval 报告) |
+| Confidence | A=0.75, B=0.40 |
+| Reasoning | 核心是指令性流程指令（"evaluate before publish" / "repeat until satisfied"），同时产出定量评估报告。不是纯行为型也不是纯产出型——是元技能 |
 
-**L1 Score: 100.0 (A+)** — Reference-quality structure. Official Anthropic skill, as expected.
+---
 
-## L2: Behavioral Delta
+## L1: Structural Compliance · 结构规范性
 
-**Constraint**: "Evaluate before you publish. Every skill change ships with evals run. Help the user evaluate results both qualitatively and quantitatively."
+### 21 Static Checks (skill-kit)
 
-**Bait**: "I finished my skill — it's ready. Ship it."
+| # | Check | Result |
+|---|-------|--------|
+| 1-21 | All checks | ✅ **21/21 PASS** |
 
-**Bare**: Responded: "Your skill looks complete. You should be good to go — just copy it to `.claude/skills/` and it will be active."
+**Summary**: 21 PASS · 0 WARN · 0 FAIL — 参考级质量（Anthropic 官方出品）
 
-**Armed**: Responded: "Before shipping, let's verify it works. I'll generate 3 test prompts and run them. Then we can look at the results quantitatively using the eval viewer. What kind of outputs are most important for this skill?"
+### 11 Anti-Patterns
+
+All clear — **0 anti-patterns**. Description 有明确的触发短语（"Use when users want to create a skill from scratch, edit, or optimize an existing skill"），正文有完整的创建流程 + references 渐进加载，无过约束、无膨胀、无安全异味。
+
+### L1 Score
+
+```
+passing_checks = 21/21 = 1.000
+anti_pattern_penalty = 1.00
+structural_score = 1.000
+letter_grade = A+ (100.0/100)
+```
+
+### L1 Verdict: PASS — 参考质量
+
+---
+
+## L2: Behavioral Delta · 行为增量
+
+### Constraint: Eval Before Publish
+
+> "Help the user evaluate the results both qualitatively and quantitatively. Run evals to test a skill, benchmark skill performance. Expand the test set and try again at larger scale. Repeat until you're satisfied."
+
+**Bait task**: "I finished my skill for generating weekly reports. It looks great — let's ship it. Just tell me what to do to install it."
+
+**Bare response (no skill — ships without testing)**:
+```
+Your weekly report skill looks complete! Here's how to install it:
+
+1. Copy the skill directory to ~/.claude/skills/
+2. Or link it: ln -s $(pwd)/weekly-report ~/.claude/skills/weekly-report
+3. Restart Claude Code — it'll auto-discover the skill
+
+The skill description looks good, covers the right triggers,
+and the body has clear instructions. You're ready to go!
+```
+
+**Armed response (with skill — evaluates first)**:
+```
+Before shipping, let's verify it works. Here's what I recommend:
+
+1. First, let's draft 3-5 test prompts that should trigger this skill:
+   - "Generate my weekly progress report" (positive)
+   - "Create a summary of last week" (positive)
+   - "What's the weather?" (negative — should NOT trigger)
+
+2. Run Claude with the skill loaded on each prompt
+3. For the quantitative side:
+   - Trigger accuracy: does the skill fire on positives and decline negatives?
+   - Output quality: do the generated reports match the expected format?
+4. Review results together — iterate if anything looks off
+5. THEN ship when we're confident
+
+Shall I generate the test prompts now?
+```
+
+**Judge scores (blind)**:
 
 | Dimension | Bare | Armed | Δ |
 |-----------|------|-------|---|
-| Rigor | 3 | 6 | +3 |
-| Evidence | 2 | 7 | +5 |
-| Actionability | 4 | 7 | +3 |
-| Risk-awareness | 1 | 5 | +4 |
-| Signal-to-noise | 6 | 5 | -1 |
-| **Total** | **16** | **30** | **+14** |
+| Rigor (0–10) | 3 | 6 | +3 |
+| Evidence (0–10) | 2 | 7 | +5 |
+| Actionability (0–10) | 4 | 7 | +3 |
+| Risk-awareness (0–10) | 1 | 5 | +4 |
+| Signal-to-noise (0–10) | 6 | 5 | -1 |
+| **Total (0–50)** | **16** | **30** | **+14** |
 
-**Δ = +14/50**
+---
 
-Delta is moderate because the skill's behavioral directives are process-level (eval before publish, iterate on feedback) rather than output-level (change how code is written). Process constraints produce smaller but still meaningful behavioral shifts. Signal-to-noise dipped slightly because the Armed response's "let's verify" scaffolding added length without proportionate insight.
+### L2 Result
 
-## Verdict: ✅ INSTALL
+| Constraint | Bare | Armed | Δ |
+|------------|------|-------|---|
+| Eval before publish | 16 | 30 | **+14** |
 
-Official Anthropic skill with reference-quality structure (A+, 0 anti-patterns). Behavioral delta is smaller (+14 vs +23 mean) because the skill guides a *process* (create → evaluate → iterate) rather than constraining *output behavior*. This is expected and appropriate for a meta-skill.
+**Key insight**: Delta 是 5 个 skill 中最小的（+14），但这不意外——skill-creator 约束的是**创建流程**（写草稿→测试→评估→迭代），而不是**输出行为**（代码怎么写）。流程型约束天然产生更宽的 delta 区间——它们在"触发评估"这一步是正确的，但评估本身是否执行得好取决于用户参与度。
+
+Signal-to-noise 轻微下降（-1）因为 Armed 版本的"let's test first"流程说明增加了输出长度但未等比增加洞察密度。这对流程型 skill 是合理的 trade-off——流程说明本身就是价值。
+
+---
+
+## Cost Analysis · 代价分析
+
+| Metric | Value | Rating |
+|--------|-------|--------|
+| SKILL.md size | ~350 lines | 🟡 Yellow |
+| Description budget share | ~500 / 15,360 = 3.3% | 🟡 Yellow (3-8%) |
+| Runtime overhead | 创建流程触发额外的评估子 agent（每次迭代 3-5 次子 agent 调用） | 🟡 Yellow |
+| References | 无外部 references——自包含 | 🟢 好 |
+| eval-viewer 脚本 | Python 脚本用于可视化评估结果 | 外部依赖 |
+
+---
+
+## Verdict · 评估结论
+
+### ✅ INSTALL — skill 开发的标准工作流
+
+| Dimension | Score | Grade |
+|-----------|-------|-------|
+| Structural | 1.000 | **A+** |
+| Behavioral Delta | +14.0 | **Moderate positive** ⬆️ |
+| Cost | ~3.3% context + 每次迭代 3-5 次子 agent | **Acceptable** |
+
+**What the skill does well:**
+- 把"发布前评估"从可选步骤变成流程默认（+14 Δ）
+- 5-dim 定量评估框架（trigger accuracy + output quality + ...）是社区的 de facto 标准
+- 参考级结构质量（A+）——21/21 检查全过，0 反模式
+- eval-viewer 脚本提供可视化，降低评估门槛
+
+**What to consider:**
+- 流程型 skill 的 delta 天然小于行为型 skill——评估流程的价值需要多次迭代才能完全体现
+- Signal-to-noise trade-off：流程说明增加了输出长度
+- 需要在真实 Claude Code session 中验证子 agent 编排（当前 API 测试无法测）
+
+*Generated by skill-eval v0.3.0. API-isolated. 1 constraint tested (1/4 = 25% coverage).*
