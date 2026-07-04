@@ -1,6 +1,11 @@
 # skill-eval — A Quantitative Evaluation Framework for Claude Code Skills
 
 <p align="center">
+  <strong>🇬🇧 English</strong> &nbsp;|&nbsp;
+  <a href="README-zh.md">🇨🇳 中文</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Claude%20Code-skill-6C4DFF?style=flat-square&logo=claude" alt="Claude Code Skill">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
   <img src="https://img.shields.io/badge/status-MVP-blue?style=flat-square" alt="MVP">
