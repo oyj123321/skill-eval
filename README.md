@@ -42,7 +42,7 @@ The Claude Code skill format (`SKILL.md`) has no built-in quality gate. Anyone c
 
 ### Why this matters beyond the Claude Code community
 
-The broader trend of "vibe-driven development" in AI tooling — skills, prompts, MCP servers, custom agents published with screenshots and enthusiasm but zero quantitative evidence — needs measurement infrastructure. skill-eval is a step toward evidence-based AI tooling.
+The current norm: skills, prompts, MCP servers, and custom agents are published with screenshots and enthusiasm but no numbers. The ecosystem has no standard way to measure whether they work. skill-eval is a step toward fixing that.
 
 ---
 
@@ -156,7 +156,7 @@ Full protocol specifications exist for the remaining four tracks (see `layers/tr
 | ai-coding-discipline | 17/2/2 | 1 | 86.0 | **B** |
 | skill-engineering | 18/1/2 | 1 | 86.0 | **B** |
 
-**Finding 1: Missing `tests.md` is the most common structural failure.** 3 of 5 skills lack a test scenarios file. This is not surprising under our problem framing — if authors aren't expected to provide evidence, they won't create test infrastructure. The absence of `tests.md` correlates with the absence of quantitative evaluation culture.
+**Finding 1: Missing `tests.md` is the most common structural failure.** 3 of 5 skills lack a test scenarios file. If authors aren't expected to provide evidence, they won't.
 
 **Finding 2: `OVER_CONSTRAINED` anti-pattern is common in behavioral skills.** Both ai-coding-discipline (18 MUST directives) and eight-principles (25 MUST/MUST NOT) exceed the >15 threshold. This is defensible for purely behavioral skills — their value comes from the constraints — but suggests the anti-pattern detector needs a track-aware calibration.
 
@@ -195,7 +195,7 @@ All five skills consume <5% of the 15,360-character description budget. The prim
 
 1. **Structural quality varies widely even among published skills** — from A+ (Anthropic official) to B (individual authors). The structural score is a useful first-pass filter: a skill that fails basic frontmatter checks is unlikely to work correctly.
 
-2. **Behavioral delta is measurable and often large** — the one fully-tested skill showed +37.5/50 improvement. This is not a small nudge; it's a qualitative transformation in how the model approaches the task. If this effect generalizes to other behavioral skills, the "vibe-driven development" problem has a measurable solution.
+2. **Behavioral delta is measurable** — the fully-tested skill scored +37.5/50. The model didn't just get slightly better — it switched from fabricating answers to verifying them, and from dumping all changes at once to decomposing step by step. If this effect generalizes, "vibe-driven development" has a measurable fix.
 
 3. **Tool access is critical for fair evaluation** — the 35-point gap between tool-less and tool-enabled testing means any behavioral evaluation framework MUST include tool execution. API-only testing without tools produces misleadingly low scores for tool-dependent skills.
 
@@ -239,7 +239,7 @@ We presented skill-eval, a type-aware evaluation framework for Claude Code skill
 
 **What remains**: (1) Complete L2 behavioral delta measurement for the remaining 4 skills (±$0.04). (2) Implement Track B (output artifact) to cover the largest category of unevaluable skills. (3) Multi-model testing (Sonnet/Opus/Haiku). (4) Monte Carlo replicates for statistical confidence. (5) A larger, randomly-sampled skill corpus for ecological validity.
 
-**The broader goal**: A world where publishing a Claude Code skill without eval data feels incomplete — the way publishing a machine learning model without benchmark scores feels incomplete today.
+**The goal**: Publishing a skill without eval data should feel like publishing an ML model without benchmark scores — you don't do it.
 
 ---
 
