@@ -148,6 +148,16 @@ Full protocol specifications exist for the remaining four tracks (see `layers/tr
 
 ### 3.2 L1 Results: Structural Analysis
 
+```
+L1 Score (0–100) — higher = cleaner SKILL.md
+
+skill-creator (anthropics)   ██████████████████████████████████████████████████ 100.0  A+
+improving-skills (mjenkinsx9) █████████████████████████████████████████████     90.5  A-
+eight-principles (oyj123321)  █████████████████████████████████████████████     90.0  A-
+ai-coding-discipline          ███████████████████████████████████████████        86.0  B
+skill-engineering             ███████████████████████████████████████████        86.0  B
+```
+
 | Skill | PASS/WARN/FAIL | Anti-patterns | Score | Grade |
 |-------|----------------|---------------|-------|-------|
 | skill-creator | 21/0/0 | 0 | 100.0 | **A+** |
@@ -163,6 +173,16 @@ Full protocol specifications exist for the remaining four tracks (see `layers/tr
 **Finding 3: Anthropic's official skill is the only A+.** This is both expected (it was written by the platform authors) and informative — it demonstrates what "structurally flawless" looks like and provides a benchmark for community authors.
 
 ### 3.3 L2 Results: Behavioral Delta (all 5 skills)
+
+```
+L2 Behavioral Delta (0–50) — measured via API-isolated A/B with tools
+
+eight-principles      ██████████████████████████████████████ +37.5 ✅
+ai-coding-discipline  ████████████████████████████           +28.0 ✅
+skill-engineering     ██████████████████████                 +20.5 ✅
+skill-creator         ██████                   -12.5 ⚠️ process skill
+improving-skills      █                            N/A ⚠️ tool-dependent
+```
 
 | Skill | L1 Grade | L2 Δ | Runs | Status |
 |-------|----------|------|------|--------|
