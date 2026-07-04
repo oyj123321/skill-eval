@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+*.pyc
+__pycache__/
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.claude/
+node_modules/
+*.json.gz
