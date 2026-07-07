@@ -219,6 +219,21 @@ These are not skill defects — they're framework gaps that the multi-track desi
 
 All five skills consume <5% of the 15,360-character description budget. The full batch evaluation cost 61 API calls (~$0.045 total) — less than 5 cents to evaluate all 5 skills at standard depth. The primary cost of running these skills in production is not token overhead but runtime overhead — extra tool calls and sub-agent spawns mandated by the skill's behavioral rules.
 
+### 3.5 Cross-Validation: Same Skill, Different Models
+
+To test whether behavioral delta depends on the model being evaluated, we ran the same skill (ai-coding-discipline, Rule 1: No Silent Fallbacks) and the same bait task against two model tiers:
+
+| Model | Bare | Armed | Δ | Interpretation |
+|-------|------|-------|---|------|
+| deepseek-v4-**pro** | 22/30 | 24/30 | **+2** | Pro already writes null-safe code. Skill adds almost nothing. |
+| deepseek-v4-**flash** | 6/30 | 30/30 | **+24** | Flash returns `user ? user.name : null`. Skill adds full null check + throw. |
+
+**The same skill's value is not a constant — it's an inverse function of model capability.** On a strong model, ai-coding-discipline is redundant for well-known patterns (Δ≈0). On a weak model, it's essential (Δ=+24). This has three implications:
+
+1. **Skill evaluations must report the model.** A Δ score without the model name is meaningless — the same skill can score +2 on one model and +24 on another.
+2. **Skills serve different roles by model tier.** On strong models, skills refine behavior at the margin. On weak models, they compensate for capability gaps. A coding standard skill running on a flash-tier model isn't a luxury — it's the difference between null-safe and silently-null code.
+3. **The "install or skip" verdict needs a model dimension.** A skill that looks unnecessary on Opus may be critical on Haiku. Future versions of skill-eval should report per-model deltas, not a single number.
+
 ---
 
 ## 4. Discussion
@@ -233,11 +248,13 @@ All five skills consume <5% of the 15,360-character description budget. The full
 
 4. **Tool access is critical for fair evaluation** — the 35-point gap between tool-less and tool-enabled testing means any behavioral evaluation framework MUST include tool execution for tool-dependent constraints.
 
+5. **Skill value is model-dependent — the same skill can be redundant on a strong model and essential on a weak one.** Cross-validation showed ai-coding-discipline producing Δ=+2 on deepseek-v4-pro but Δ=+24 on deepseek-v4-flash. A skill evaluation that doesn't report the model is measuring the wrong thing.
+
 ### 4.2 Limitations
 
 1. **3/5 skills fully verified.** Two skills (skill-creator, improving-skills) exposed measurement limitations in Track A. Until Tracks B-E are implemented, interactive process skills and tool-dependent skills cannot be fairly evaluated.
 
-2. **Single model.** All testing used DeepSeek-v4-Pro. Skills may behave differently on Claude Sonnet/Opus/Haiku. A thorough evaluation requires multi-model testing.
+2. **Single model baseline, two-model cross-validation.** The batch was run on DeepSeek-v4-Pro. A follow-up cross-validation on two model tiers (§3.5) revealed that behavioral delta varies dramatically by model capability (Δ=+2 vs Δ=+24 for the same skill). Full multi-model evaluation (including Claude Sonnet/Opus/Haiku) is needed.
 
 3. **Single run.** No Monte Carlo replicates. Statistical confidence intervals are not computed. The Δ = +37.5 should be interpreted as directional, not precise.
 
@@ -269,9 +286,9 @@ All five skills consume <5% of the 15,360-character description budget. The full
 
 We presented skill-eval, a type-aware evaluation framework for Claude Code skills. The framework classifies skills into five tracks, applies track-specific measurement protocols, and produces structured reports with structural scores, behavioral deltas, and cost analysis.
 
-**What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) For output-level behavioral skills (n=3), Track A produces consistent positive deltas (+20.5 to +37.5) using API-isolated A/B testing with tool-enabled agent loops. (3) Two skill types — interactive process skills and tool-dependent skills — cannot be evaluated by Track A alone, confirming the need for the multi-track design. (4) The most common structural failure is missing `tests.md` (3/5 skills).
+**What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) For output-level behavioral skills (n=3), Track A produces consistent positive deltas (+20.5 to +37.5) using API-isolated A/B testing with tool-enabled agent loops. (3) Two skill types — interactive process skills and tool-dependent skills — cannot be evaluated by Track A alone, confirming the need for the multi-track design. (4) The most common structural failure is missing `tests.md` (3/5 skills). (5) **Skill value is model-dependent** — the same skill can be redundant on a strong model (Δ=+2) and essential on a weak one (Δ=+24). Skill evaluations must report the model.
 
-**What remains**: (1) Complete L2 behavioral delta measurement for the remaining 4 skills (±$0.04). (2) Implement Track B (output artifact) to cover the largest category of unevaluable skills. (3) Multi-model testing (Sonnet/Opus/Haiku). (4) Monte Carlo replicates for statistical confidence. (5) A larger, randomly-sampled skill corpus for ecological validity.
+**What remains**: (1) Multi-model testing across Claude tiers (Sonnet/Opus/Haiku) to map the full skill-value-by-model-capability curve. (2) Implement Track C (Format) and Track D (Tool) to complete the 5-track framework. (3) Monte Carlo replicates for statistical confidence. (4) A larger, randomly-sampled skill corpus for ecological validity — with weaker skills included to validate the evaluator's discrimination power.
 
 **The goal**: Publishing a skill without eval data should feel like publishing an ML model without benchmark scores — you don't do it.
 
