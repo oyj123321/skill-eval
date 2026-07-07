@@ -78,7 +78,15 @@ Run: `python track_*.py --skill-md <path>` or `python run_all_tracks.py`
 
 <img src="evals/charts/track_a_deltas.svg" alt="Track A Behavioral Deltas" width="100%">
 
-Three verified behavioral skills: mean Δ = +28.7/50. Two flagged: skill-creator (process skill, single-turn API limitation) and improving-skills (tool-dependent).
+| Skill | Bare Score | Armed Score | Δ / 50 | Verdict |
+|-------|-----------|-------------|--------|---------|
+| eight-principles | 5 | 46 | **+37.5** | ✅ fabrication→verification, chaos→decomposition |
+| ai-coding-discipline | 11 | 39 | **+28.0** | ✅ silent masking→fail-fast |
+| skill-engineering | 19.5 | 40 | **+20.5** | ✅ reference-dependence→self-sufficiency |
+| skill-creator | 28.5 | 16 | **-12.5** | ⚠️ process skill, single-turn API limitation |
+| improving-skills | — | — | **N/A** | ⚠️ tool-dependent, needs Track D |
+
+**Mean Δ = +28.7/50** (3 output-constraining skills). **Score spread = 50 points** — from +37.5 to -12.5.
 
 ### 3.3 Cross-Validation: Same Skill, Two Models
 
@@ -86,21 +94,71 @@ Three verified behavioral skills: mean Δ = +28.7/50. Two flagged: skill-creator
 
 Same skill (ai-coding-discipline Rule 1), same bait, two models. **Pro already writes correct code (Δ=+2). Flash gets it wrong without the skill (Δ=+24).** Skill value is model-dependent — evaluations must report the model.
 
-### 3.4 Tracks B/C/D/E — 16 Skills
+### 3.4 Track B: Output Artifact (4 skills, 16 API calls)
 
-| Track | Skills | Score Range | Key Finding |
-|-------|--------|-------------|-------------|
-| **B** Output | 4 | +3.0 to -5.5 | Format hurts creative docs, helps structured ones |
-| **C** Format | 4 | +1.0 to -3.5 | Only actual format skills score positive |
-| **D** Tool | 4 | 67% to 33% | 34-point pass rate spread |
-| **E** Knowledge | 4 | +6.5 to -3.5 | skill-creator +6.5; non-knowledge skills negative |
+Tests whether a skill improves the quality of *documents it produces*.
 
-<img src="evals/charts/track_b_deltas.svg" alt="Track B" width="48%">
-<img src="evals/charts/track_e_deltas.svg" alt="Track E" width="48%">
+<img src="evals/charts/track_b_deltas.svg" alt="Track B" width="100%">
 
-### 3.5 Cost
+| Skill | Proposal Δ | Guide Δ | Mean Δ / 30 | Notes |
+|-------|-----------|---------|-------------|-------|
+| xlsx | +7 | -1 | **+3.0** | Structured spreadsheet format helps |
+| pptx | -3 | +3 | **0.0** | Neutral — presentation rules don't change output much |
+| docx | -1 | -9 | **-5.0** | Strict document rules constrain creative proposals |
+| canvas-design | -5 | -6 | **-5.5** | Design rules can't produce canvas output in API mode |
 
-Full evaluation of 21 skills: 157+ API calls, total cost ~$0.12 (DeepSeek-v4-pro). Average ~$0.006 per skill at standard depth.
+**Score spread = 8.5 points**. Format constraints hurt creative docs (-9Δ) but help structured ones (+7Δ).
+
+### 3.5 Track C: Format Compliance (4 skills, 16 API calls)
+
+Tests whether a skill enforces *output format rules* — conventional commit format.
+
+<img src="evals/charts/track_c_deltas.svg" alt="Track C" width="100%">
+
+| Skill | Bugfix Δ | Feature Δ | Mean Δ / 15 | Notes |
+|-------|---------|----------|-------------|-------|
+| managing-commits | +3 | -1 | **+1.0** | Actual commit-format skill — positive |
+| brand-guidelines | 0 | 0 | **0.0** | Visual reference — format rules irrelevant |
+| doc-coauthoring | -8 | +1 | **-3.5** | Writing process skill, not format skill |
+| theme-factory | -7 | 0 | **-3.5** | UI theme skill, not format skill |
+
+**Score spread = 4.5 points**. Only the actual format skill scores positive. General skills forced into wrong rubric get negative deltas.
+
+### 3.6 Track D: Tool Correctness (4 skills, 12 tool tests)
+
+Tests whether documented commands execute correctly.
+
+<img src="evals/charts/track_d_passrates.svg" alt="Track D" width="100%">
+
+| Skill | Tests | Pass Rate | Failed Cases |
+|-------|-------|-----------|-------------|
+| webapp-testing | 2/3 | **67%** | Test suite output format |
+| mcp-builder | 2/3 | **67%** | Health check exit code |
+| claude-api | 1/3 | **33%** | Model pattern, rate limit output |
+| slack-gif-creator | 1/3 | **33%** | File output, frame count |
+
+**Score spread = 34 points**. Deterministic — no LLM judge. Edge cases fail more than happy paths.
+
+### 3.7 Track E: Knowledge Accuracy (4 skills, 32 API calls)
+
+Tests whether reference knowledge produces more accurate answers than general model knowledge.
+
+<img src="evals/charts/track_e_deltas.svg" alt="Track E" width="100%">
+
+| Skill | Query 1 Δ | Query 2 Δ | Mean Δ / 20 | Notes |
+|-------|----------|----------|-------------|-------|
+| skill-creator | +7 | +6 | **+6.5** | Structured process knowledge matches queries |
+| frontend-design | 0 | +1 | **+0.5** | Common CSS — model already knows |
+| internal-comms | -3 | -3 | **-3.0** | Skill body too short (1,098 chars) |
+| algorithmic-art | 0 | -7 | **-3.5** | Niche art — body adds noise, not signal |
+
+**Score spread = 10.0 points**. Common knowledge Δ≈0. Structured process knowledge largest positive. Short/niche skills negative.
+
+### 3.8 Cross-Validation + Cost
+
+**Same skill, two models**: ai-coding-discipline Rule 1 — Δ=+2 on Pro, Δ=+24 on Flash. Skill value is model-dependent.
+
+**Cost**: 157+ API calls, ~$0.12 total (DeepSeek-v4-pro). ~$0.006 per skill.
 
 ---
 
@@ -108,15 +166,19 @@ Full evaluation of 21 skills: 157+ API calls, total cost ~$0.12 (DeepSeek-v4-pro
 
 ### What the Framework Demonstrates
 
-1. **Structural quality varies meaningfully** (B to A+). The L1 score is a useful first-pass filter.
+1. **Structural quality varies meaningfully** (B to A+). L1 score is a useful first-pass filter (3.1).
 
-2. **All five tracks produce score spreads** — skills don't cluster. The framework discriminates.
+2. **Track A discriminates behavioral skills across a 50-point range** (+37.5 to -12.5). Output-level constraints show the largest deltas (3.2).
 
-3. **Skill value is model-dependent.** Same skill, same task: Δ=+2 on Pro, Δ=+24 on Flash. Skills are redundant on strong models, essential on weak ones.
+3. **Track B captures format-vs-creativity trade-off.** Rules that help a spreadsheet (+7Δ) hurt a creative proposal (-9Δ). API-only mode underrates interactive file-generation skills (3.4).
 
-4. **Output format constraints have asymmetric effects.** Strict rules hurt creative tasks (Track B Δ=-5.5) but help structured ones (+3.0).
+4. **Track C identifies mismatched skills.** Only the actual commit-format skill scored positive; three general skills scored negative when forced into the format rubric (3.5).
 
-5. **Only type-matched skills score positive on format/knowledge tracks.** General skills forced into the wrong rubric get negative deltas — the classifier works.
+5. **Track D catches real tool failures.** Deterministic pass/fail testing reveals a 33-67% range with edge cases failing more than happy paths (3.6).
+
+6. **Track E separates common from niche knowledge.** Common CSS rules show Δ≈0 (model already knows); structured process knowledge shows +6.5 (model doesn't know); niche/short skills score negative (3.7).
+
+7. **Skill value is model-dependent.** Same skill: Δ=+2 on Pro, Δ=+24 on Flash (3.8).
 
 ### Limitations (Honest)
 
