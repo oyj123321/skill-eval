@@ -24,22 +24,22 @@ Reference information (ground truth):
 
 Output ONLY valid JSON: {"response_a":{"accuracy":N,"completeness":N,"traceability":N,"confidence":N,"synthesis":N,"total":N},"response_b":{...},"notes":"1 sentence comparison"}"""
 
-def api_call(system, msg, mt=4096):
+def api_call(system, msg, mt=4096, debug=False):
     payload = {"model":MODEL,"max_tokens":min(mt,8192),"system":system[:8000],"messages":[{"role":"user","content":msg[:12000]}]}
     r = subprocess.run(["curl","-s",MESSAGES_URL,"-H",f"Authorization: Bearer {API_KEY}","-H","Content-Type: application/json","-H","anthropic-version: 2023-06-01","-d",json.dumps(payload),"--max-time","120"], capture_output=True, timeout=130)
     out = r.stdout.decode('utf-8','ignore')
     if not out.strip(): return "EMPTY"
     try:
         d = json.loads(out)
-        texts = [b["text"] for b in d.get("content",[]) if b.get("type")=="text" and "text" in b]
-        # Also check for thinking (some models output thinking only when the prompt is complex)
-        thinkings = [b.get("thinking","") for b in d.get("content",[]) if b.get("type")=="thinking"]
-        result = "\n".join(texts)
-        if not result.strip() and thinkings:
-            result = thinkings[-1]  # last thinking block might contain the answer
-        return result if result.strip() else f"EMPTY_TEXT (content_blocks={len(d.get('content',[]))})"
+        # Collect text blocks in order, skip thinking
+        all_text = []
+        for b in d.get("content",[]):
+            if b.get("type")=="text" and "text" in b:
+                all_text.append(b["text"])
+        result = "\n".join(all_text)
+        return result if result.strip() else f"EMPTY_TEXT"
     except Exception as e:
-        return f"PARSE:{out[:200]} err={e}"
+        return f"PARSE:{out[:200]}"
 
 def judge(reference, task, ta, tb):
     p = KNOWLEDGE_JUDGE.replace("{reference}", reference[:3000])

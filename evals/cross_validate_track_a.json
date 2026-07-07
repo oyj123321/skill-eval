@@ -1,0 +1,14 @@
+[
+  {
+    "model": "deepseek-v4-pro",
+    "bare": 7,
+    "armed": 17,
+    "delta": 10
+  },
+  {
+    "model": "deepseek-v4-flash",
+    "bare": 0,
+    "armed": 0,
+    "delta": 0
+  }
+]
