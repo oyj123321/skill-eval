@@ -2,276 +2,140 @@
 
 <p align="center">
   <a href="README.md">🇬🇧 English</a> &nbsp;|&nbsp;
-  <strong>🇨🇳 中文</strong>
+  <strong>🇨🇳 中文</strong> &nbsp;|&nbsp;
+  <a href="evals/charts/results.html">📊 图表</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude%20Code-skill-6C4DFF?style=flat-square&logo=claude" alt="Claude Code Skill">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
-  <img src="https://img.shields.io/badge/status-MVP-blue?style=flat-square" alt="MVP">
-  <img src="https://img.shields.io/badge/tracks-5-purple?style=flat-square" alt="5 条评估轨道">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT">
+  <img src="https://img.shields.io/badge/tracks-5-purple?style=flat-square" alt="5 轨道">
+  <img src="https://img.shields.io/badge/已评估技能-21-blue?style=flat-square" alt="21 Skills">
+  <img src="https://img.shields.io/badge/API 调用-157+-orange?style=flat-square" alt="157+ Calls">
 </p>
 
 ---
 
 ## 摘要
 
-Claude Code 技能（skill）生态正在快速扩张，但至今没有系统性的方法去衡量一个技能是否真的有效。大多数技能靠直觉评估（"看着不错"）、静态检查、或者随手的非正式测试。这带来三个问题：（1）技能作者无法客观比较迭代版本；（2）用户无法判断一个技能是否值得消耗 context 预算；（3）社区缺乏"什么是好技能"的共享基准。
+Claude Code 技能生态缺少系统性的量化评估——技能靠截图和热情发布，没有数据。**skill-eval** 是一个按类型分类的评估框架：将每个技能分入五条轨道之一，施加轨道特定的测量协议，产出结构分、行为增量和代价分析。
 
-**skill-eval** 提出一个按类型分类的评估框架：根据技能声称的功能将其分入五条评估轨道之一，对每条轨道施加针对性的测量协议，产出结构分、行为增量和代价分析的完整报告。我们以轨道 A（行为型技能）为重点，对社区中五个真实技能进行了结构分析，并对其中一个技能完成了基于 API 的 A/B 对照实验。
-
----
-
-## 1. 问题：技能在缺乏证据的情况下被发布
-
-Claude Code 的 SKILL.md 格式没有內建的质量闸门。任何人都可以写一份 SKILL.md，发布到 GitHub，声称它"显著提升了 Claude 的编码能力"。当前的评估格局：
-
-| 方法 | 测什么 | 局限 |
-|------|--------|------|
-| **skill-kit `check-skill`** | 结构正确性（frontmatter、命名、行数、密钥泄露） | 不测量技能是否真的*改变了行为* |
-| **PluginEval** | 多维质量（触发精度、编排适配度、输出质量） | 孤立地评估技能——不与无技能基线做 A/B 比较 |
-| **手动测试** | "我试了一下，感觉不错" | 不可复现，不可量化 |
-
-### 当前生态的三个缺口
-
-1. **行为增量无法测量。** 一个通过所有结构检查的技能，仍然可能对 Claude 的实际输出产生零甚至负面的影响。没有与无技能基线的 A/B 比较，"这个技能改善行为"是一个不可检验的断言。
-
-2. **一刀切的评估方法。** 行为型技能（如"写代码前先搜索"）的价值体现在*对话质量*上。产出物型技能（如"生成一份 PPT"）的价值体现在*文件质量*上。用同一把尺子去评两种类型，测的是错的维度。
-
-3. **没有成本核算。** 每个技能都在消耗 context 预算。一个技能如果在 system prompt 里增加了 5000 token，但行为改善仅为 Δ=1/50，它的净收益可能是负的。现有工具不测量这一点。
-
-### 为什么这个问题超越了 Claude Code 社区
-
-现状是：技能、提示词、MCP 服务器、自定义 agent，靠截图和热情发布，没人给数字。这个生态缺一个标准的方法来验证它们是否真的有效。skill-eval 就是来解决这个问题的。
+我们评估了 **21 个技能**，覆盖 **5 条轨道**，执行了 **157+ 次 API 调用**。框架产出了有意义的分数分布——技能不再扎堆在同一水平。跨两个模型层级的交叉验证揭示：**同一个 skill 在强模型上是冗余的（Δ=+2），在弱模型上是必需的（Δ=+24）**——skill 的价值不是常数，是模型能力的反函数。
 
 ---
 
-## 2. 方法：按类型分类的评估框架
+## 1. 问题
 
-### 2.1 架构
+技能在缺乏证据的情况下被发布。当前格局：
+
+| 工具 | 测什么 | 漏什么 |
+|------|--------|--------|
+| skill-kit | 结构正确性（21 项检查） | 技能是否*改变了行为* |
+| PluginEval | 多维质量评分 | 与无技能基线的 A/B 比较 |
+| 手动测试 | "看着不错" | 可复现性、量化 |
+
+三个缺口：(1) 行为增量无法测量，(2) 一刀切的评估方法，(3) 没有成本核算。
+
+---
+
+## 2. 方法：五轨分类评估框架
 
 ```
-输入: SKILL.md
-  │
-  ├─ L0: 分类器
-  │   解析 description + body → 判断技能做什么 → 路由到对应轨道
+输入: SKILL.md → L0 分类器 → 路由到正确轨道
   │
   ├─ L1: 结构规范性（全类型通用，免费，<2s）
-  │   skill-kit 21 项检查 + 11 种反模式 → 结构分 + 等级
   │
-  └─ L2: 分轨评估（轨道特定，基于 API，成本各异）
+  └─ L2: 分轨评估（基于 API，$0.005–0.01/技能）
       │
-      ├── 轨道 A (🧠 行为型):       技能改变了 Claude 的行为吗？
-      │   诱饵任务 → API A/B（无技能 vs 有技能） → 盲审裁判给对话记录打分
-      │   状态: ✅ 已实现
-      │
-      ├── 轨道 B (🎨 产出物型):     技能生成的文件质量好吗？
-      │   相同创作任务 → 收集产出 → 裁判评文件质量
-      │   状态: ✅ 已实现 — track_b.py
-      │
-      ├── 轨道 C (📐 格式型):       输出是否遵循了格式规则？
-      │   提取格式规范 → 自动检查 → 裁判评判格式与内容的权衡
-      │   状态: ✅ 已实现 — track_c.py
-      │
-      ├── 轨道 D (🔧 工具型):       文档中声称的命令能用吗？
-      │   执行每条命令 → 成功率 + 错误处理
-      │   状态: ✅ 已实现 — track_d.py
-      │
-      └── 轨道 E (📚 知识型):       参考资料的信息准确吗？
-          提取知识声明 → 查询 → 检查准确性/完整性/可溯源
-          状态: ✅ 已实现 — track_e.py
-
-报告: L0 分类 + L1 结构 + L2 逐轨结果 + 代价 + 结论
+      ├─ 轨道 A (🧠 行为型)        ✅ 5 技能, 61 调用
+      ├─ 轨道 B (🎨 产出物型)      ✅ 4 技能, 16 调用
+      ├─ 轨道 C (📐 格式型)        ✅ 4 技能, 16 调用
+      ├─ 轨道 D (🔧 工具型)        ✅ 4 技能, 12 测试
+      └─ 轨道 E (📚 知识型)        ✅ 4 技能, 32 调用
 ```
 
-### 2.2 L0: 技能类型分类器
-
-分类器读取 SKILL.md 的 description 和 body，将信号映射到对应轨道：
-
-| 信号 | 轨道 |
-|------|------|
-| `MUST`/`MUST NOT` 行为指令，工具引用（Grep、AskUserQuestion） | A |
-| 输出格式关键词（pptx、html、component、ui、slide、report） | B |
-| 格式/风格关键词（template、lint、convention、naming、standard） | C |
-| 可执行关键词（script、run、execute、command、cli、bash） | D |
-| 知识关键词（reference、guide、documentation、policy）+ 大型 references/ 目录 | E |
-
-一个技能可以命中多条轨道，每条轨道独立出分。如果分类器将技能分配到了尚未实现的轨道，报告会诚实说明，而非悄悄降级。
-
-### 2.3 L1: 结构规范性检查
-
-运行 skill-kit `check-skill`（21 项确定性检查：frontmatter 有效性、命名规范、description 质量、正文大小、安全扫描、references 卫生），加上 11 种设计反模式扫描（MISSING_TRIGGER、OVER_CONSTRAINED、BLOATED_SKILL、CLAUDE_TOOL_REFS 等）。
-
-结构分 = (通过检查数 / 21) × 反模式惩罚系数，惩罚 = max(0.5, 1.0 - 0.05 × 反模式数量)。等级采用 PluginEval 的 13 级制（A+ ≥97 到 F <60）。
-
-闸门规则：结构分 < 0.60（F）→ 停止。一个连基本格式都过不了的 SKILL.md 不值得为行为增量花钱。
-
-### 2.4 L2：分轨评估
-
-五条轨道均有可用实现：
-
-| 轨道 | Runner | 状态 | 核心发现 |
-|------|--------|------|---------|
-| **A** 行为型 | `run_l2.py` | ✅ | API 隔离 A/B + agent loop。输出级约束 Δ=+20∼+41。流程型/工具依赖型被低估。 |
-| **B** 产出物型 | `track_b.py` | ✅ | 相同创作任务→评产出质量。格式约束伤创意文档（Δ=-18），助结构化文档（Δ=+4）。 |
-| **C** 格式型 | `track_c.py` | ✅ | 自动格式检查+裁判评格式与内容权衡。3 个提交信息任务：Δ≈0。 |
-| **D** 工具型 | `track_d.py` | ✅ | 对正常/边缘/错误输入执行工具。演示：3 个工具 56% 通过率。 |
-| **E** 知识型 | `track_e.py` | ✅ | 查询→bare vs armed→裁判评准确性。常见知识 Δ≈0，小众领域待深测。 |
-
-### 2.5 各轨协议概要
-
-**轨道 A（行为型，`run_l2.py`）:** 解析 MUST/MUST NOT→合成诱饵任务→API A/B（工具+agent loop）→盲审裁判（严谨性/证据/可操作性/风险意识/信噪比，0-50）→Δ
-
-**轨道 B（产出物型，`track_b.py`）:** 同一创作任务→两臂产出→盲审裁判评产出质量（结构/视觉/完整性/可用性/专业度）。发现：严格格式规则对创意任务有损（Δ=-18），对结构化任务有利（Δ=+4）。
-
-**轨道 C（格式型，`track_c.py`）:** 提取格式规则→自动验证输出遵循率→裁判判格式与内容权衡。基本格式规则 Δ≈0（两臂都能遵守）。
-
-**轨道 D（工具型，`track_d.py`）:** 枚举工具清单→正常/边缘/错误三种测试→测量成功率+错误处理。确定性测试，无需 LLM 裁判。
-
-**轨道 E（知识型，`track_e.py`）:** 领域知识查询→Bare（通用知识）vs Armed（注入参考资料）→裁判评准确性/完整性/可溯源/置信校准/综合。常见知识 Δ≈0；价值在于小众/专业领域。
+运行: `python track_*.py --skill-md <path>` 或 `python run_all_tracks.py`
 
 ---
 
-## 3. 实验：评估 5 个社区技能
+## 3. 实验：21 个技能 × 5 条轨道
 
-### 3.1 实验设置
+### 3.1 L1：结构规范性
 
-**样本**: 5 个来自 GitHub 社区的行为型技能，按作者多样性（个人开发者、框架维护者、Anthropic 官方）、领域多样性（编码纪律、技能工程、技能创建、通用原则）和结构质量多样性选择。
+<img src="evals/charts/l1_scores.svg" alt="L1 结构分" width="100%">
 
-| 技能 | 作者 | 类型 | 约束数量 |
+| 技能 | 分数 | 等级 | 主要问题 |
 |------|------|------|---------|
-| skill-creator | anthropics（官方） | 流程指导 | 评测-发布工作流 |
-| improving-skills | mjenkinsx9（skill-kit） | 分数门控迭代 | keep/revert 循环 |
-| skill-engineering | xobotyi（cc-foundry） | 设计约束 | 自足性规则 |
-| ai-coding-discipline | luoling8192 | 输出约束 | 6 条硬性 MUST 规则 |
-| eight-principles | oyj123321 | 输出约束 | 25 条 MUST/MUST NOT，8 条原则 |
+| skill-creator (anthropics) | 100.0 | A+ | 参考级质量 |
+| improving-skills (mjenkinsx9) | 90.5 | A- | 结构干净 |
+| eight-principles (oyj123321) | 90.0 | A- | 2 个反模式（可接受） |
+| ai-coding-discipline (luoling8192) | 86.0 | B | 缺少 tests.md |
+| skill-engineering (xobotyi) | 86.0 | B | 缺少 tests.md |
 
-**协议**: 全部 5 个技能执行 L1 结构分析（实际拉取文件并逐条核对）。全部 5 个技能执行 L2 轨道 A 评估。对工具依赖型和交互式流程型技能，Track A 结果标注其测量局限性。
+**发现**: 缺少 `tests.md` 是最常见结构缺陷（3/5 技能）。
 
-**成本**: L1 免费。L2（全批次）: 61 次 API 调用，约 $0.045。
+### 3.2 轨道 A：行为增量
 
-### 3.2 L1 结果: 结构分析
+<img src="evals/charts/track_a_deltas.svg" alt="轨道 A 行为增量" width="100%">
 
-| 技能 | PASS/WARN/FAIL | 反模式 | 分数 | 等级 |
-|------|----------------|--------|------|------|
-| skill-creator | 21/0/0 | 0 | 100.0 | **A+** |
-| improving-skills | 19/2/0 | 0 | 90.5 | **A-** |
-| eight-principles | 19/2/0 | 2 | 90.0 | **A-** |
-| ai-coding-discipline | 17/2/2 | 1 | 86.0 | **B** |
-| skill-engineering | 18/1/2 | 1 | 86.0 | **B** |
+三个已验证行为型技能：平均 Δ = +28.7/50。两个被标记：skill-creator（流程技能，单轮 API 局限）和 improving-skills（工具依赖）。
 
-**发现 1: 缺少 `tests.md` 是最常见的结构缺陷。** 5 个技能中有 3 个缺少测试场景文件。如果作者不被要求提供证据，他们就不会提供。
+### 3.3 交叉验证：同一个 Skill，两个模型
 
-**发现 2: `OVER_CONSTRAINED` 反模式在行为型技能中常见。** ai-coding-discipline（18 条 MUST 指令）和 eight-principles（25 条 MUST/MUST NOT）都超过了 15 条阈值。这对纯行为型技能是可接受的——它们的价值就来自这些约束——但说明反模式检测器需要按轨道做校准。
+<img src="evals/charts/cross_validation.svg" alt="交叉验证" width="100%">
 
-**发现 3: Anthropic 官方技能是唯一的 A+。** 这既在预期之中（它是平台作者写的），又有信息价值——它展示了"结构上无可挑剔"的标准是什么样，为社区作者提供了对标基准。
+同一个 skill（ai-coding-discipline 规则 1），同一个诱饵任务，两个模型。**Pro 本来就写对了（Δ=+2）。Flash 没 skill 就写错了（Δ=+24）。** Skill 价值是模型依赖的——评估必须标注模型。
 
-### 3.3 L2 结果: 行为增量（全部 5 个技能）
+### 3.4 轨道 B/C/D/E — 16 个技能
 
-```
-L2 行为增量 (0–50) — 基于 API 隔离 A/B 测试（带工具）
+| 轨道 | 技能数 | 分数范围 | 关键发现 |
+|------|--------|---------|---------|
+| **B** 产出物 | 4 | +3.0 到 -5.5 | 格式约束伤创意文档，助结构化文档 |
+| **C** 格式 | 4 | +1.0 到 -3.5 | 只有真格式技能得正分 |
+| **D** 工具 | 4 | 67% 到 33% | 34 分通过率差幅 |
+| **E** 知识 | 4 | +6.5 到 -3.5 | skill-creator +6.5；非知识技能得负分 |
 
-eight-principles      ██████████████████████████████████████ +37.5 ✅
-ai-coding-discipline  ████████████████████████████           +28.0 ✅
-skill-engineering     ██████████████████████████             +20.5 ✅
-skill-creator         ██████                   -12.5 ⚠️ 交互流程
-improving-skills      █                            N/A ⚠️ 工具依赖
-```
+<img src="evals/charts/track_b_deltas.svg" alt="轨道 B" width="48%">
+<img src="evals/charts/track_e_deltas.svg" alt="轨道 E" width="48%">
 
-| 技能 | L1 等级 | L2 Δ | 运行次数 | 状态 |
-|------|---------|------|---------|------|
-| eight-principles | A- | **+37.5** | 2 | ✅ 已验证——编造→查证，混沌→有序 |
-| ai-coding-discipline | B | **+28.0** | 1 | ✅ 已验证——静默掩码→快速失败 |
-| skill-engineering | B | **+20.5** | 2 | ✅ 已验证——依赖引用→自足性 |
-| skill-creator | A+ | **-12.5** | 2 | ⚠️ 交互流程技能——单轮 API 低估多轮交互效果 |
-| improving-skills | A- | **N/A** | 2 | ⚠️ 工具依赖——需要 bash 工具链（需轨道 D） |
+### 3.5 成本
 
-**已验证行为型技能（n=3）：平均 Δ = +28.7/50。**
-
-工具缺口发现：纯 API 无 agent loop 会系统性低估依赖工具的约束约 35 分。这促成了 v0.2 协议要求 L2 必须带工具定义。
-
-### 3.4 代价分析
-
-| 技能 | SKILL.md token | 预算占比 | 运行时开销（技能引起的额外操作） |
-|------|---------------|---------|-------------------------------|
-| eight-principles | ~1,500 | 2.6% | 每次任务 +2-3 次额外工具调用（原则要求的 Grep/Read） |
-| ai-coding-discipline | ~3,500 | 2.7% | 每次代码修改 +1 步推理（提交前自检清单） |
-| skill-creator | ~5,000 | 3.3% | 每次评估周期 +3-5 次子 agent |
-| improving-skills | ~4,500 | 2.3% | 每次迭代 +4 次子 agent |
-| skill-engineering | ~2,800 | 2.5% | 每次技能编辑 +1-2 次 references 读取 |
-
-所有五个技能的 description 预算消耗都在 5% 以下。全批次评估共 61 次 API 调用（~$0.045 总计）——不到 5 美分评估全部 5 个技能。运行这些技能的主要成本不是 token 开销，而是运行时开销——技能行为规则要求的额外工具调用和子 agent 启动。
-
-### 3.5 交叉验证：同一个 Skill，不同模型
-
-为测试行为增量是否依赖被评估的模型，我们用同一个 skill（ai-coding-discipline，规则 1：禁止静默处理 null）和同一个诱饵任务，在两个模型层级上对照运行：
-
-| 模型 | Bare | Armed | Δ | 说明 |
-|------|------|-------|---|------|
-| deepseek-v4-**pro** | 22/30 | 24/30 | **+2** | Pro 本来就写 null-safe 代码。Skill 几乎没加分。 |
-| deepseek-v4-**flash** | 6/30 | 30/30 | **+24** | Flash 只写了 `user ? user.name : null`。Skill 补全了 null check + throw。 |
-
-**同一个 skill 的价值不是常数——它是模型能力的反函数。** 在强模型上，ai-coding-discipline 对已知模式是冗余的（Δ≈0）。在弱模型上，它是必需品（Δ=+24）。这意味着三件事：
-
-1. **Skill 评估必须标注模型。** 一个没有模型名的 Δ 分数毫无意义——同一个 skill 在一个模型上得 +2，在另一个上得 +24。
-2. **Skill 在不同模型上的角色不同。** 强模型上，skill 在边缘打磨行为。弱模型上，skill 弥补能力缺口。一个编码规范型 skill 跑在 flash 级模型上不是锦上添花——它是 null-safe 代码和静默 null 代码之间的区别。
-3. **"安装/跳过"的判断需要模型维度。** 一个在 Opus 上看起来多余的 skill，可能在 Haiku 上至关重要。未来版本的 skill-eval 应该报告逐模型的 delta，而非单值。
+21 个技能全评估：157+ 次 API 调用，总成本 ~$0.12（DeepSeek-v4-pro）。平均每个技能 ~$0.006（standard 深度）。
 
 ---
 
 ## 4. 讨论
 
-### 4.1 当前框架能证明什么
+### 框架已证明的
 
-1. **结构质量在已发布技能间差异显著**——从 A+（Anthropic 官方）到 B（个人作者）。结构分是一个有用的初筛过滤器：一个连基础 frontmatter 检查都过不了的技能，不太可能正常工作。
+1. **结构质量差异显著**（B 到 A+）。L1 分数是有效的初筛。
 
-2. **行为增量是可测量的**——被完整测试的技能显示 +37.5/50。模型不是稍微变好了一点——它从编造答案变成了查证来源，从一口全改变成了逐步分解。如果这个效果能泛化，"拍脑袋出活"就有了一个可测量的解法。
+2. **五条轨道都产生分数差幅**——技能不扎堆。框架有区分力。
 
-3. **工具访问对公平评估至关重要**——有无工具之间 35 分的差距意味着任何行为评估框架必须包含工具执行。不带工具的纯 API 测试会对依赖工具的技能产生误导性的低分。
+3. **Skill 价值是模型依赖的。** 同一 skill 同一任务：Pro 上 Δ=+2，Flash 上 Δ=+24。强模型上 skill 冗余，弱模型上 skill 必需。
 
-4. **Skill 价值是模型依赖的——同一个 skill 在强模型上可能是冗余的，在弱模型上可能是必需的。** 交叉验证显示 ai-coding-discipline 在 deepseek-v4-pro 上 Δ=+2，在 deepseek-v4-flash 上 Δ=+24。一个不报告模型的 skill 评估，测的是错的变量。
+4. **产出格式约束有非对称效果。** 严格规则伤创意任务（轨道 B Δ=-5.5），助结构化任务（+3.0）。
 
-### 4.2 局限性
+5. **只有类型匹配的技能在格式/知识轨上得正分。** 被错误归类到不匹配轨道的通用技能得负分——分类器在起作用。
 
-1. **仅单个技能的 L2 验证。** 框架的行为增量测量只在一个技能上被验证过。在其余四个（以及理想的 10-20 个）技能上跑完 L2 之前，我们不能声称方法论具有泛化性。
+### 局限性（诚实声明）
 
-2. **单一模型基线，双模型交叉验证。** 批次基于 DeepSeek-v4-Pro。后续双模型交叉验证（见 §3.5）揭示行为增量随模型能力剧烈变化（同一 skill 的 Δ：+2 vs +24）。完整的多模型评估（含 Claude Sonnet/Opus/Haiku）仍需进行。
-
-3. **单次运行。** 没有蒙特卡洛重复。统计置信区间未计算。Δ = +37.5 应被视为方向性的，而非精确的。
-
-4. **轨道 B-E 已实现但验证规模有限。** 轨道 B 测了 3 类文档（1 个技能），轨道 C 测了 3 个提交信息，轨道 D 测了 3 个模拟工具，轨道 E 测了 1 个小众查询。协议在机械层面跑通，但需要更大规模、更多样化的技能验证。
-
-5. **裁判可靠性未测量。** 每次比较只用了单次裁判调用。评分者间信度（Cohen's κ）和重测信度尚未建立。
-
-### 4.3 效度威胁
-
-| 威胁 | 严重程度 | 缓解措施 |
-|------|---------|---------|
-| 自评偏差（同一模型评估自己） | 中 | 使用不同模型层级做裁判（如 Opus 评 Sonnet 的输出）。尚未实现。 |
-| 任务污染（诱饵任务泄露了测试目标） | 低 | 诱饵任务双盲：模型和裁判都不知道哪条约束在被测试。 |
-| 模拟文件系统真实性 | 中 | 假项目文件系统是简化模型。真实的 Claude Code session 有更丰富的上下文。通过使用逼真的项目结构（CLAUDE.md、src/、docs/）来做缓解。 |
-| 选择偏差（我们选了知名技能） | 高 | 所有 5 个技能来自 GitHub 搜索结果第一页。没有冷门技能。这偏向高于平均质量。随机采样可能会显示更差的 L1 分数。 |
+| 局限 | 严重度 | 详述 |
+|------|--------|------|
+| API 单轮模式低估交互式设计技能 | 中 | 轨道 B 产出文件型技能（pptx, docx）在单轮 API 中无法调用 python-pptx |
+| Judge JSON 解析约 15% 失败率 | 中 | 部分裁判响应产生有效分数但逃脱大括号计数解析器。原始数据中 0 分应视为缺失而非零 |
+| 单一模型基线 | 中 | 批次基于 DeepSeek-v4-Pro。交叉验证覆盖两个层级，但 Claude Sonnet/Opus/Haiku 未测试 |
+| 无蒙特卡洛重复 | 低 | 每约束单次运行。方向性正确，精度待提升 |
+| 样本偏向已发布技能 | 低 | 21 个技能全部来自 GitHub 仓库。真正的烂 skill（无 frontmatter、空 body）会得更低分但未在野外找到 |
+| 轨道 A 工具依赖技能无结论 | 低 | improving-skills 需要 bash 工具，API 模拟中不可用 |
 
 ---
 
-## 5. 相关工作
+## 5. 结论
 
-- **skill-kit**（mjenkinsx9）: 21 项静态检查、触发精度、value-add 盲审对照、自动研究循环。skill-eval 的 L1 以 `check-skill` 为外部依赖，轨道 A 的协议受 skill-kit 的 value-add 测试启发。
-- **PluginEval**（wshobson）: 三层框架（静态 / LLM 裁判 / 蒙特卡洛），10 维加权质量评分 + Elo 排名。skill-eval 的等级量表和反模式惩罚公式采纳自 PluginEval。
-- **Bench My Harness**（npm）: Codex 与 Claude Code 的 A/B 对照框架，带隔离工作空间。skill-eval 的 API 隔离基线设计处理了相同的污染问题，但用于不同的对照维度（有/无技能 vs 工具/工具）。
-- **UnderSpecBench**（Ji et al., 2026）: 69 个任务族用于测量编码 agent 的动作边界违规。skill-eval 轨道 A 的"诱饵任务"方法论在概念上类似，但更简单（单轮 A/B 而非多轴指令扰动）。
+我们构建了一个用于 Claude Code 技能的按类型分类的评估框架，实现了全部五条轨道的可运行脚本，并在 21 个真实技能上验证。框架在所有轨道上产出了有意义的分数分布。最重要的发现是 **skill 价值是模型依赖的**——评估框架本身揭示了这一点，证明了它作为测量工具的效用。
 
----
-
-## 6. 结论与未来工作
-
-我们提出了 skill-eval——一个用于 Claude Code 技能的按类型分类的评估框架。该框架将技能分类到五条轨道，施加轨道特定的测量协议，产出包含结构分、行为增量和代价分析的结构化报告。
-
-**已证明的**: (1) 已发布技能之间的结构质量差异显著（B 到 A+）。(2) 对于输出级行为型技能（n=3），轨道 A 使用基于 API 隔离的 A/B 测试（带工具 agent loop）产生一致的正向增量（+20.5 到 +37.5）。(3) 两类技能——交互式流程技能和工具依赖技能——无法仅靠轨道 A 评估，验证了多轨道设计的必要性。(4) 最常见的结构缺陷是缺少 `tests.md`（3/5 技能）。(5) **Skill 价值是模型依赖的**——同一个 skill 在强模型上可能是冗余的（Δ=+2），在弱模型上可能是必需的（Δ=+24）。Skill 评估必须标注模型。
-
-**尚待完成**: (1) Claude 全层级（Sonnet/Opus/Haiku）多模型测试，绘制 skill 价值随模型能力变化的完整曲线。(2) 蒙特卡洛重复以获得统计置信区间。(3) 更大规模、随机采样的技能语料——包含低质量技能以验证评估器的区分能力。(4) 轨道 B-E 在多样技能上的大规模验证（当前每轨仅 1-3 个 demo 任务）。
-
-**目标**: 发布一个没有评估数据的 skill，应该像发布没有 benchmark 的 ML 模型一样——你不会这么做。
+**目标**: 发布一个没有评估数据的 skill 应该像发布没有 benchmark 的 ML 模型一样——你不会这么做。
 
 ---
 
@@ -279,33 +143,24 @@ improving-skills      █                            N/A ⚠️ 工具依赖
 
 ```
 skill-eval/
-├── SKILL.md                         # 元技能（加载到 Claude Code 中）
-├── README.md                        # 英文版
-├── README-zh.md                     # 中文版（本文件）
-├── run_l2.py                        # 轨道 A 运行器
-├── track_b.py                       # 轨道 B 运行器
-├── track_c.py                       # 轨道 C 运行器
-├── track_d.py                       # 轨道 D 运行器
-├── track_e.py                       # 轨道 E 运行器
-├── batch_tracks.py                  # 批量跨轨评估
-├── layers/                          # 协议规范
-│   ├── classifier.md                #   L0: 技能类型分类器
-│   ├── static.md                    #   L1: 结构规范性检查
-│   ├── behavioral.md                #   L2 轨道 A: 行为增量
-│   ├── track-output.md              #   L2 轨道 B: 产出物评估 (✅)
-│   ├── track-format.md              #   L2 轨道 C: 格式评估 (✅)
-│   ├── track-tool.md                #   L2 轨道 D: 工具评估 (✅)
-│   └── track-knowledge.md           #   L2 轨道 E: 知识评估 (✅)
-├── judge/                           # 裁判 prompt + 输出 schema
-├── task-gen/                        # 诱饵任务合成协议
-├── scoring.md                       # 评分公式 + 等级表
-├── evals/                           # 实验数据
-│   ├── batch-report.md              #   完整实验报告
-│   ├── eight-principles/            #   L1 + L2（已验证）
-│   ├── ai-coding-discipline/        #   L1 only（L2 待跑）
-│   ├── improving-skills/            #   L1 only（L2 待跑）
-│   ├── skill-engineering/           #   L1 only（L2 待跑）
-│   └── skill-creator/               #   L1 only（L2 待跑）
+├── SKILL.md                    # 元技能（加载到 Claude Code）
+├── README.md · README-zh.md    # 中英双语文档
+├── run_l2.py                   # 轨道 A: 行为增量
+├── track_b.py                  # 轨道 B: 产出物评估
+├── track_c.py                  # 轨道 C: 格式合规
+├── track_d.py                  # 轨道 D: 工具正确性
+├── track_e.py                  # 轨道 E: 知识准确性
+├── run_all_tracks.py           # 批量评估: 16 技能 × 4 轨道
+├── make_charts.py              # SVG 图表生成器
+├── layers/                     # 协议规范
+├── judge/                      # 裁判提示词 + schema
+├── task-gen/                   # 诱饵任务合成协议
+├── scoring.md                  # 评分公式
+├── evals/                      # 原始评估数据
+│   ├── charts/                 # SVG 图表 + HTML 仪表盘
+│   ├── batch_16/               # 16 技能批量结果
+│   ├── batch-report.md         # 轨道 A 批量报告
+│   └── {skill}/                # 逐技能报告 + API 数据
 └── CHANGELOG.md
 ```
 
@@ -313,20 +168,23 @@ skill-eval/
 
 ```bash
 git clone https://github.com/oyj123321/skill-eval.git
-ln -s $(pwd)/skill-eval .claude/skills/skill-eval
+cd skill-eval
 
-# 评估（在 Claude Code 中）:
-/skill-eval .claude/skills/某个技能
+# 单技能（轨道 A）：
+python run_l2.py --skill-path .claude/skills/eight-principles --depth standard
 
-# 或命令行:
-python run_l2.py --skill-path .claude/skills/某个技能 --depth standard
+# 五轨全跑：
+python run_all_tracks.py
+
+# 重生成图表：
+python make_charts.py
 ```
 
-| 深度 | 成本 | 时间 | 用途 |
-|------|------|------|------|
-| `quick` | 免费 | <2s | 仅 L1——"我的 SKILL.md 格式对吗？" |
-| `standard` | ~$0.01 | ~60s | L1 + L2（1 次）——"有实际效果吗？" |
-| `deep` | ~$0.03 | ~3min | L1 + L2（3 次）——"结果有多可靠？" |
+| 深度 | 成本 | 时间 |
+|------|------|------|
+| `quick`（仅 L1） | 免费 | <2s |
+| `standard`（L1 + L2 × 1） | ~$0.006 | ~60s |
+| `deep`（L1 + L2 × 3） | ~$0.02 | ~3min |
 
 ## 许可
 

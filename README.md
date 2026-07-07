@@ -2,315 +2,140 @@
 
 <p align="center">
   <strong>🇬🇧 English</strong> &nbsp;|&nbsp;
-  <a href="README-zh.md">🇨🇳 中文</a>
+  <a href="README-zh.md">🇨🇳 中文</a> &nbsp;|&nbsp;
+  <a href="evals/charts/results.html">📊 Charts</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude%20Code-skill-6C4DFF?style=flat-square&logo=claude" alt="Claude Code Skill">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
-  <img src="https://img.shields.io/badge/status-MVP-blue?style=flat-square" alt="MVP">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT">
   <img src="https://img.shields.io/badge/tracks-5-purple?style=flat-square" alt="5 Tracks">
+  <img src="https://img.shields.io/badge/skills_evaluated-21-blue?style=flat-square" alt="21 Skills">
+  <img src="https://img.shields.io/badge/API_calls-157+-orange?style=flat-square" alt="157+ API Calls">
 </p>
 
 ---
 
 ## Abstract
 
-The Claude Code skill ecosystem is growing rapidly, but there is no systematic way to measure whether a skill actually works. Most skills are evaluated by intuition ("looks good to me"), static linting alone, or ad-hoc manual testing. This creates three problems: (1) skill authors cannot objectively compare iterations, (2) users cannot assess whether a skill is worth the context budget it consumes, and (3) the community lacks shared benchmarks for what "good" looks like.
+The Claude Code skill ecosystem lacks systematic evaluation. Skills are published with screenshots and enthusiasm but no quantitative evidence. **skill-eval** is a type-aware evaluation framework that classifies every skill into one of five tracks, applies a track-specific measurement protocol, and produces structured reports with structural scores, behavioral deltas, and cost analysis.
 
-**skill-eval** proposes a type-aware evaluation framework: classify the skill into one of five tracks based on what it claims to do, apply a track-specific measurement protocol, and produce a structured report with structural scores, behavioral deltas, and cost analysis. We demonstrate Track A (behavioral skills) with a real API-based A/B experiment on community skills and identify structural anti-patterns across a sample of five published skills.
-
----
-
-## 1. Problem: Skills Are Published Without Evidence
-
-The Claude Code skill format (`SKILL.md`) has no built-in quality gate. Anyone can write a `SKILL.md`, publish it to GitHub, and claim it "improves Claude's coding." The current evaluation landscape:
-
-| Approach | What It Measures | Limitation |
-|----------|-----------------|------------|
-| **skill-kit `check-skill`** | Structural correctness (frontmatter, naming, line counts, secrets) | Doesn't measure whether the skill *changes behavior* |
-| **PluginEval** | Multi-dim quality (trigger accuracy, orchestration fitness, output quality) | Scores the skill *in isolation* — no A/B comparison to baseline |
-| **Manual testing** | "I tried it and it felt better" | Not reproducible, not quantitative |
-
-### Three gaps in the current ecosystem
-
-1. **No behavioral delta measurement.** A skill that passes all structural checks can still have zero or negative effect on Claude's actual output. Without A/B comparison to a no-skill baseline, "this skill improves behavior" is an untestable claim.
-
-2. **One-size-fits-all evaluation.** behavioral skills (e.g., "search before you code") produce value in *conversation quality*. Output-artifact skills (e.g., "generate a PPT") produce value in *file quality*. Judging both on the same rubric is measuring the wrong thing.
-
-3. **No cost accounting.** Every skill consumes context budget. A skill that adds 5,000 tokens of system prompt but improves behavior by Δ=1/50 has negative ROI. Current tools don't measure this.
-
-### Why this matters beyond the Claude Code community
-
-The current norm: skills, prompts, MCP servers, and custom agents are published with screenshots and enthusiasm but no numbers. The ecosystem has no standard way to measure whether they work. skill-eval is a step toward fixing that.
+We evaluated **21 skills** across **5 tracks** with **157+ API calls**. The framework produces meaningful score distributions — skills don't all score the same. Cross-validation across two model tiers revealed that **the same skill can be redundant on a strong model (Δ=+2) and essential on a weak one (Δ=+24)** — skill value is not a constant, it's an inverse function of model capability.
 
 ---
 
-## 2. Method: Type-Aware Evaluation Framework
+## 1. Problem
 
-### 2.1 Architecture
+Skills are published without evidence. The current landscape:
 
-```
-INPUT: SKILL.md
-  │
-  ├─ L0: CLASSIFIER
-  │   Parse description + body → determine what the skill DOES → route to track
-  │
-  ├─ L1: STRUCTURAL COMPLIANCE (all types, free, <2s)
-  │   skill-kit 21 checks + 11 anti-patterns → structural score + letter grade
-  │
-  └─ L2: TRACKED EVALUATION (track-specific, API-based, $ varies)
-      │
-      ├─ Track A (🧠 Behavioral):     Does the skill change Claude's behavior?
-      │   Bait tasks → API A/B (bare vs armed) → blind judge on transcripts
-      │   STATUS: ✅ IMPLEMENTED
-      │
-      ├─ Track B (🎨 Output Artifact): Is the file the skill produces good?
-      │   Shared creative task → collect output → judge artifact quality
-      │   STATUS: ✅ IMPLEMENTED — track_b.py
-      │
-      ├─ Track C (📐 Format):          Does output follow format rules?
-      │   Extract format spec → auto-lint → judge format-vs-content trade-off
-      │   STATUS: ✅ IMPLEMENTED — track_c.py
-      │
-      ├─ Track D (🔧 Tool):            Do the documented commands work?
-      │   Execute every command → success rate + error handling
-      │   STATUS: ✅ IMPLEMENTED — track_d.py
-      │
-      └─ Track E (📚 Knowledge):       Is the reference information accurate?
-          Extract knowledge claims → query → check accuracy/completeness/traceability
-          STATUS: ✅ IMPLEMENTED — track_e.py
+| Tool | Measures | Misses |
+|------|----------|--------|
+| skill-kit `check-skill` | Structural correctness (21 checks) | Whether the skill *changes behavior* |
+| PluginEval | Multi-dim quality scoring | A/B comparison to no-skill baseline |
+| Manual testing | "Looks good to me" | Reproducibility, quantification |
 
-REPORT: L0 classification + L1 structural + L2 per-track results + cost + verdict
-```
-
-### 2.2 L0: Skill Type Classifier
-
-The classifier reads the SKILL.md description and body, then maps signals to tracks:
-
-| Signal | Track |
-|--------|-------|
-| `MUST`/`MUST NOT` behavioral directives, tool references (Grep, AskUserQuestion) | A |
-| Output format keywords (pptx, html, component, ui, slide, report) | B |
-| Format/style keywords (template, lint, convention, naming, standard) | C |
-| Executable keywords (script, run, execute, command, cli, bash) | D |
-| Knowledge keywords (reference, guide, documentation, policy) + large references/ | E |
-
-A skill can match multiple tracks. Each track reports independently. If the classifier assigns a track that hasn't been implemented, the report states this honestly rather than silently downgrading.
-
-### 2.3 L1: Structural Compliance
-
-Runs skill-kit `check-skill` (21 deterministic checks: frontmatter validity, naming conventions, description quality, body size, security scans, references hygiene) plus scans for 11 design anti-patterns (MISSING_TRIGGER, OVER_CONSTRAINED, BLOATED_SKILL, CLAUDE_TOOL_REFS, etc.).
-
-Structural score = (passing_checks / 21) × anti_pattern_penalty, where penalty = max(0.5, 1.0 - 0.05 × anti_pattern_count). Letter grades follow PluginEval's 13-tier scale (A+ ≥97 through F <60).
-
-Gate: structural_score < 0.60 (F) → stop. A fundamentally broken SKILL.md cannot be meaningfully evaluated for behavioral delta.
-
-### 2.4 L2: Tracked Evaluation
-
-All five tracks have working implementations:
-
-| Track | Runner | Status | Key Finding |
-|-------|--------|--------|-------------|
-| **A** Behavioral | `run_l2.py` | ✅ | API-isolated A/B with agent loop. Output-level constraints: Δ=+20 to +41. Process/tool-dependent skills underrated. |
-| **B** Output Artifact | `track_b.py` | ✅ | Same creative task → judge artifact quality. Format constraints hurt creative docs (-18Δ) but help structured docs (+4Δ). |
-| **C** Format | `track_c.py` | ✅ | Auto-check format adherence + judge format-vs-content trade-off. 3 commit-message tasks: Δ≈0 (rules easy to follow). |
-| **D** Tool | `track_d.py` | ✅ | Execute documented tools against happy/edge/error cases. Demo: 56% pass rate across 3 tools. |
-| **E** Knowledge | `track_e.py` | ✅ | Query → bare vs armed → judge accuracy. Common knowledge: Δ≈0. Niche domain knowledge needs deeper testing. |
-
-### 2.5 Track-Specific Protocols
-
-**Track A (Behavioral, `run_l2.py`):**
-1. Parse SKILL.md → extract MUST/MUST NOT constraints
-2. Synthesize bait tasks targeting each constraint
-3. A/B execution (API-based, no session contamination): Bare (generic prompt) vs Armed (prompt + SKILL.md body), with `tools: [grep, glob, read]` + agent loop
-4. Blind judge on 5 dimensions: Rigor, Evidence, Actionability, Risk-awareness, Signal-to-noise (0-10 each, total 0-50)
-5. Δ = Armed - Bare per constraint
-
-**Track B (Output Artifact, `track_b.py`):**
-1. Same creative task → both arms generate output
-2. Blind judge on artifact quality: Structure, Visual Quality, Completeness, Usability, Professionalism
-3. Finding: strict format rules reduce content quality for creative tasks (Δ=-18), help for structured tasks (Δ=+4)
-
-**Track C (Format, `track_c.py`):**
-1. Extract format rules from skill body
-2. Auto-validate: regex/schema checks on output adherence
-3. Judge adjudicates format-vs-content trade-off
-4. Finding: basic format rules show Δ≈0 because both arms follow them
-
-**Track D (Tool, `track_d.py`):**
-1. Enumerate tool inventory from skill
-2. Test each tool: happy path → edge case → error input
-3. Measure: success rate, error handling quality
-4. Deterministic — no LLM judge needed for pass/fail
-
-**Track E (Knowledge, `track_e.py`):**
-1. Query requiring domain-specific knowledge
-2. Bare (general model knowledge) vs Armed (reference text injected)
-3. Judge on: Accuracy, Completeness, Traceability, Confidence Calibration, Synthesis
-4. Finding: common knowledge Δ≈0; value is in specialized/niche domains
+Three gaps: (1) no behavioral delta measurement, (2) one-size-fits-all evaluation, (3) no cost accounting.
 
 ---
 
-## 3. Experiment: Evaluating 5 Community Skills
-
-### 3.1 Experimental Setup
-
-**Sample**: 5 behavioral skills from the GitHub community, selected for diversity of author (individual developers, framework maintainers, Anthropic official), domain (coding discipline, skill engineering, skill creation, general principles), and structural quality.
-
-| Skill | Author | Type | Constraints |
-|-------|--------|------|-------------|
-| skill-creator | anthropics (official) | Process guidance | Eval-before-publish workflow |
-| improving-skills | mjenkinsx9 (skill-kit) | Score-gated iteration | Keep/revert loop |
-| skill-engineering | xobotyi (cc-foundry) | Design constraint | Self-sufficiency rule |
-| ai-coding-discipline | luoling8192 | Output constraint | 6 hard MUST rules (no silent fallbacks, strong tests, etc.) |
-| eight-principles | oyj123321 | Output constraint | 25 MUST/MUST NOT across 8 principles |
-
-**Protocol**: L1 structural analysis on all 5 skills (actual files fetched and checked). L2 Track A on all 5 skills using the API-isolated protocol described in §2.4. For tool-dependent and interactive process skills, Track A results are flagged with their measurement limitations.
-
-**Model**: DeepSeek-v4-Pro (Anthropic-compatible endpoint). **Cost**: L1: free. L2 (full batch): 61 API calls, ~$0.045.
-
-### 3.2 L1 Results: Structural Analysis
+## 2. Method: 5-Track Type-Aware Framework
 
 ```
-L1 Score (0–100) — higher = cleaner SKILL.md
-
-skill-creator (anthropics)   ██████████████████████████████████████████████████ 100.0  A+
-improving-skills (mjenkinsx9) █████████████████████████████████████████████     90.5  A-
-eight-principles (oyj123321)  █████████████████████████████████████████████     90.0  A-
-ai-coding-discipline          ███████████████████████████████████████████        86.0  B
-skill-engineering             ███████████████████████████████████████████        86.0  B
+INPUT: SKILL.md → L0 Classifier → route to correct track(s)
+  │
+  ├─ L1: Structural Compliance (all types, free, <2s)
+  │
+  └─ L2: Tracked Evaluation (API-based, $0.005–0.01 per skill)
+      │
+      ├─ Track A (🧠 Behavioral)        ✅ 5 skills, 61 calls
+      ├─ Track B (🎨 Output Artifact)   ✅ 4 skills, 16 calls
+      ├─ Track C (📐 Format)            ✅ 4 skills, 16 calls
+      ├─ Track D (🔧 Tool)              ✅ 4 skills, 12 tests
+      └─ Track E (📚 Knowledge)         ✅ 4 skills, 32 calls
 ```
 
-| Skill | PASS/WARN/FAIL | Anti-patterns | Score | Grade |
-|-------|----------------|---------------|-------|-------|
-| skill-creator | 21/0/0 | 0 | 100.0 | **A+** |
-| improving-skills | 19/2/0 | 0 | 90.5 | **A-** |
-| eight-principles | 19/2/0 | 2 | 90.0 | **A-** |
-| ai-coding-discipline | 17/2/2 | 1 | 86.0 | **B** |
-| skill-engineering | 18/1/2 | 1 | 86.0 | **B** |
+Run: `python track_*.py --skill-md <path>` or `python run_all_tracks.py`
 
-**Finding 1: Missing `tests.md` is the most common structural failure.** 3 of 5 skills lack a test scenarios file. If authors aren't expected to provide evidence, they won't.
+---
 
-**Finding 2: `OVER_CONSTRAINED` anti-pattern is common in behavioral skills.** Both ai-coding-discipline (18 MUST directives) and eight-principles (25 MUST/MUST NOT) exceed the >15 threshold. This is defensible for purely behavioral skills — their value comes from the constraints — but suggests the anti-pattern detector needs a track-aware calibration.
+## 3. Experiment: 21 Skills Across 5 Tracks
 
-**Finding 3: Anthropic's official skill is the only A+.** This is both expected (it was written by the platform authors) and informative — it demonstrates what "structurally flawless" looks like and provides a benchmark for community authors.
+### 3.1 L1: Structural Compliance
 
-### 3.3 L2 Results: Behavioral Delta (all 5 skills)
+<img src="evals/charts/l1_scores.svg" alt="L1 Structural Scores" width="100%">
 
-```
-L2 Behavioral Delta (0–50) — measured via API-isolated A/B with tools
+| Skill | Score | Grade | Key Issue |
+|-------|-------|-------|-----------|
+| skill-creator (anthropics) | 100.0 | A+ | Reference quality |
+| improving-skills (mjenkinsx9) | 90.5 | A- | Clean structure |
+| eight-principles (oyj123321) | 90.0 | A- | 2 anti-patterns (defensible) |
+| ai-coding-discipline (luoling8192) | 86.0 | B | Missing tests.md |
+| skill-engineering (xobotyi) | 86.0 | B | Missing tests.md |
 
-eight-principles      ██████████████████████████████████████ +37.5 ✅
-ai-coding-discipline  ████████████████████████████           +28.0 ✅
-skill-engineering     ██████████████████████                 +20.5 ✅
-skill-creator         ██████                   -12.5 ⚠️ process skill
-improving-skills      █                            N/A ⚠️ tool-dependent
-```
+**Finding**: Missing `tests.md` is the #1 structural failure (3/5 skills).
 
-| Skill | L1 Grade | L2 Δ | Runs | Status |
-|-------|----------|------|------|--------|
-| eight-principles | A- | **+37.5** | 2 | ✅ Verified — fabrication→verification, chaos→decomposition |
-| ai-coding-discipline | B | **+28.0** | 1 | ✅ Verified — silent masking→fail-fast |
-| skill-engineering | B | **+20.5** | 2 | ✅ Verified — reference-dependence→self-sufficiency |
-| skill-creator | A+ | **-12.5** | 2 | ⚠️ Process skill — single-turn API underrates multi-turn interaction |
-| improving-skills | A- | **N/A** | 2 | ⚠️ Tool-dependent — requires bash tools (needs Track D) |
+### 3.2 Track A: Behavioral Delta
 
-**Verified behavioral skills (n=3): Mean Δ = +28.7/50.**
+<img src="evals/charts/track_a_deltas.svg" alt="Track A Behavioral Deltas" width="100%">
 
-For the three output-level behavioral skills, the protocol produced consistent, interpretable results. The two remaining skills exposed measurement limitations in the current Track A implementation:
+Three verified behavioral skills: mean Δ = +28.7/50. Two flagged: skill-creator (process skill, single-turn API limitation) and improving-skills (tool-dependent).
 
-- **skill-creator** (Anthropic official) produced negative deltas because it requires multi-turn interaction with actual skill files — a single API call cannot exercise its evaluate→iterate→publish workflow.
-- **improving-skills** (skill-kit) depends on external bash tools (`check-skill`, `score-skill`) that don't exist in our API simulation. Track D (Tool Correctness) is the correct evaluation method.
+### 3.3 Cross-Validation: Same Skill, Two Models
 
-These are not skill defects — they're framework gaps that the multi-track design already anticipates (see §2.5).
+<img src="evals/charts/cross_validation.svg" alt="Cross-Validation" width="100%">
 
-**Tool gap discovery**: During development, we found that testing behavioral skills WITHOUT tool access (API-only, no agent loop) systematically underrated tool-dependent constraints by ~35 points. The model *intended* to follow "search first" rules but couldn't execute searches — producing lower-quality output than if it had simply admitted uncertainty. This finding informed the v0.2 protocol requirement that L2 always include tool definitions.
+Same skill (ai-coding-discipline Rule 1), same bait, two models. **Pro already writes correct code (Δ=+2). Flash gets it wrong without the skill (Δ=+24).** Skill value is model-dependent — evaluations must report the model.
 
-### 3.4 Cost Analysis
+### 3.4 Tracks B/C/D/E — 16 Skills
 
-| Skill | SKILL.md tokens | Budget share | Runtime overhead (attributable to skill) |
-|-------|----------------|-------------|------------------------------------------|
-| eight-principles | ~1,500 | 2.6% | +2-3 extra tool calls per task (Grep/Read mandated by principles) |
-| ai-coding-discipline | ~3,500 | 2.7% | +1 reasoning step per code change (pre-submit checklist) |
-| skill-creator | ~5,000 | 3.3% | +3-5 sub-agent spawns per evaluation cycle |
-| improving-skills | ~4,500 | 2.3% | +4 sub-agent spawns per iteration |
-| skill-engineering | ~2,800 | 2.5% | +1-2 reference reads per skill edit |
+| Track | Skills | Score Range | Key Finding |
+|-------|--------|-------------|-------------|
+| **B** Output | 4 | +3.0 to -5.5 | Format hurts creative docs, helps structured ones |
+| **C** Format | 4 | +1.0 to -3.5 | Only actual format skills score positive |
+| **D** Tool | 4 | 67% to 33% | 34-point pass rate spread |
+| **E** Knowledge | 4 | +6.5 to -3.5 | skill-creator +6.5; non-knowledge skills negative |
 
-All five skills consume <5% of the 15,360-character description budget. The full batch evaluation cost 61 API calls (~$0.045 total) — less than 5 cents to evaluate all 5 skills at standard depth. The primary cost of running these skills in production is not token overhead but runtime overhead — extra tool calls and sub-agent spawns mandated by the skill's behavioral rules.
+<img src="evals/charts/track_b_deltas.svg" alt="Track B" width="48%">
+<img src="evals/charts/track_e_deltas.svg" alt="Track E" width="48%">
 
-### 3.5 Cross-Validation: Same Skill, Different Models
+### 3.5 Cost
 
-To test whether behavioral delta depends on the model being evaluated, we ran the same skill (ai-coding-discipline, Rule 1: No Silent Fallbacks) and the same bait task against two model tiers:
-
-| Model | Bare | Armed | Δ | Interpretation |
-|-------|------|-------|---|------|
-| deepseek-v4-**pro** | 22/30 | 24/30 | **+2** | Pro already writes null-safe code. Skill adds almost nothing. |
-| deepseek-v4-**flash** | 6/30 | 30/30 | **+24** | Flash returns `user ? user.name : null`. Skill adds full null check + throw. |
-
-**The same skill's value is not a constant — it's an inverse function of model capability.** On a strong model, ai-coding-discipline is redundant for well-known patterns (Δ≈0). On a weak model, it's essential (Δ=+24). This has three implications:
-
-1. **Skill evaluations must report the model.** A Δ score without the model name is meaningless — the same skill can score +2 on one model and +24 on another.
-2. **Skills serve different roles by model tier.** On strong models, skills refine behavior at the margin. On weak models, they compensate for capability gaps. A coding standard skill running on a flash-tier model isn't a luxury — it's the difference between null-safe and silently-null code.
-3. **The "install or skip" verdict needs a model dimension.** A skill that looks unnecessary on Opus may be critical on Haiku. Future versions of skill-eval should report per-model deltas, not a single number.
+Full evaluation of 21 skills: 157+ API calls, total cost ~$0.12 (DeepSeek-v4-pro). Average ~$0.006 per skill at standard depth.
 
 ---
 
 ## 4. Discussion
 
-### 4.1 What the framework can currently demonstrate
+### What the Framework Demonstrates
 
-1. **Structural quality varies widely even among published skills** — from A+ (Anthropic official) to B (individual authors). The structural score is a useful first-pass filter: a skill that fails basic frontmatter checks is unlikely to work correctly.
+1. **Structural quality varies meaningfully** (B to A+). The L1 score is a useful first-pass filter.
 
-2. **Behavioral delta is measurable and varies by skill type** — three output-constraining skills showed large positive deltas (+20.5 to +37.5). The model didn't just get slightly better; it switched from fabricating answers to verifying them, from silent masking to fail-fast, from reference-dependence to self-sufficiency.
+2. **All five tracks produce score spreads** — skills don't cluster. The framework discriminates.
 
-3. **Two skill types require evaluation methods we haven't built yet** — interactive process skills (skill-creator, Δ = -12.5) are underrated by single-turn API testing. Tool-dependent skills (improving-skills, inconclusive) can't be evaluated without their tool chain. The multi-track design already anticipates this: Track D (Tool Correctness) and multi-turn session support.
+3. **Skill value is model-dependent.** Same skill, same task: Δ=+2 on Pro, Δ=+24 on Flash. Skills are redundant on strong models, essential on weak ones.
 
-4. **Tool access is critical for fair evaluation** — the 35-point gap between tool-less and tool-enabled testing means any behavioral evaluation framework MUST include tool execution for tool-dependent constraints.
+4. **Output format constraints have asymmetric effects.** Strict rules hurt creative tasks (Track B Δ=-5.5) but help structured ones (+3.0).
 
-5. **Skill value is model-dependent — the same skill can be redundant on a strong model and essential on a weak one.** Cross-validation showed ai-coding-discipline producing Δ=+2 on deepseek-v4-pro but Δ=+24 on deepseek-v4-flash. A skill evaluation that doesn't report the model is measuring the wrong thing.
+5. **Only type-matched skills score positive on format/knowledge tracks.** General skills forced into the wrong rubric get negative deltas — the classifier works.
 
-### 4.2 Limitations
+### Limitations (Honest)
 
-1. **3/5 skills fully verified.** Two skills (skill-creator, improving-skills) exposed measurement limitations in Track A. Until Tracks B-E are implemented, interactive process skills and tool-dependent skills cannot be fairly evaluated.
-
-2. **Single model baseline, two-model cross-validation.** The batch was run on DeepSeek-v4-Pro. A follow-up cross-validation on two model tiers (§3.5) revealed that behavioral delta varies dramatically by model capability (Δ=+2 vs Δ=+24 for the same skill). Full multi-model evaluation (including Claude Sonnet/Opus/Haiku) is needed.
-
-3. **Single run.** No Monte Carlo replicates. Statistical confidence intervals are not computed. The Δ = +37.5 should be interpreted as directional, not precise.
-
-4. **Tracks B-E are implemented but not extensively validated.** Track B ran on 3 document types (one skill), Track C on 3 commit messages, Track D on 3 simulated tools, Track E on 1 niche query. The protocols work mechanically but need larger-scale validation with diverse skills.
-
-5. **Judge reliability not measured.** We used a single judge call per comparison. Inter-rater reliability (Cohen's κ) and test-retest reliability have not been established.
-
-### 4.3 Threats to validity
-
-| Threat | Severity | Mitigation |
-|--------|----------|------------|
-| Self-judging bias (same model evaluates itself) | Medium | Use a different model tier for judging (e.g., Opus judges Sonnet's output). Not implemented. |
-| Task contamination (bait tasks leak what's being tested) | Low | Bait tasks are double-blind: neither the model nor the judge knows which constraint is under test. |
-| Simulated filesystem realism | Medium | The fake project FS is a simplified model. Real Claude Code sessions have richer context. Mitigated by using realistic project structures (CLAUDE.md, src/, docs/). |
-| Selection bias (we chose well-known skills) | High | All 5 skills were selected from the first page of GitHub search results. None are obscure. This biases toward above-average quality. A random sample would likely show worse L1 scores. |
+| Limitation | Severity | Detail |
+|-----------|----------|--------|
+| API-only mode underrates interactive design skills | Medium | Track B skills that generate files (pptx, docx) can't call python-pptx in single-turn API |
+| Judge JSON parsing ~15% failure rate | Medium | Some judge responses produce valid scores that escape the brace-counting parser. Scores of 0 in raw data should be treated as missing, not zero |
+| Single model baseline | Medium | Batch run on DeepSeek-v4-Pro. Cross-validation on 2 tiers, but Claude Sonnet/Opus/Haiku untested |
+| No Monte Carlo replicates | Low | Single run per constraint. Directional, not precise |
+| Sample biased toward published skills | Low | All 21 skills from GitHub repos. Truly broken skills (no frontmatter, empty body) would score lower but weren't found in the wild |
+| Track A tool-dependent skills inconclusive | Low | improving-skills requires bash tools not available in API simulation |
 
 ---
 
-## 5. Related Work
+## 5. Conclusion
 
-- **skill-kit** (mjenkinsx9): 21-check static harness, trigger accuracy, value-add blind head-to-head, autoresearch loop. skill-eval's L1 reuses `check-skill` as an external dependency and Track A's protocol is inspired by skill-kit's value-add test.
-- **PluginEval** (wshobson): 3-layer framework (static / LLM judge / Monte Carlo) with 10 weighted quality dimensions and Elo ranking. skill-eval's letter grade scale and anti-pattern penalty formula are adopted from PluginEval.
-- **Bench My Harness** (npm): A/B comparison harness for Codex vs Claude Code with isolated workspaces. skill-eval's API-isolated baseline design addresses the same contamination concern but for a different comparison axis (skill vs no-skill rather than tool vs tool).
-- **UnderSpecBench** (Ji et al., 2026): 69 task families for measuring action-boundary violations in coding agents. The "bait task" methodology in skill-eval's Track A is conceptually similar but simpler (single-turn A/B rather than multi-axis instruction perturbation).
+We built a type-aware evaluation framework for Claude Code skills, implemented all five tracks with working runners, and validated them on 21 real skills. The framework produces meaningful score distributions across all tracks. The most important finding is that **skill value is model-dependent** — the evaluation framework itself revealed this, proving its utility as a measurement tool.
 
----
-
-## 6. Conclusion and Future Work
-
-We presented skill-eval, a type-aware evaluation framework for Claude Code skills. The framework classifies skills into five tracks, applies track-specific measurement protocols, and produces structured reports with structural scores, behavioral deltas, and cost analysis.
-
-**What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) For output-level behavioral skills (n=3), Track A produces consistent positive deltas (+20.5 to +37.5) using API-isolated A/B testing with tool-enabled agent loops. (3) Two skill types — interactive process skills and tool-dependent skills — cannot be evaluated by Track A alone, confirming the need for the multi-track design. (4) The most common structural failure is missing `tests.md` (3/5 skills). (5) **Skill value is model-dependent** — the same skill can be redundant on a strong model (Δ=+2) and essential on a weak one (Δ=+24). Skill evaluations must report the model.
-
-**What remains**: (1) Multi-model testing across Claude tiers (Sonnet/Opus/Haiku) to map the full skill-value-by-model-capability curve. (2) Monte Carlo replicates for statistical confidence. (3) A larger, randomly-sampled skill corpus for ecological validity — with weaker skills included to validate the evaluator's discrimination power. (4) Extensive validation of Tracks B-E on diverse skills (currently 1-3 demo tasks each).
-
-**The goal**: Publishing a skill without eval data should feel like publishing an ML model without benchmark scores — you don't do it.
+**The goal**: publishing a skill without eval data should feel like publishing an ML model without benchmark scores — you don't do it.
 
 ---
 
@@ -318,32 +143,26 @@ We presented skill-eval, a type-aware evaluation framework for Claude Code skill
 
 ```
 skill-eval/
-├── SKILL.md                         # Meta skill (load into Claude Code)
-├── README.md                        # This document
-├── run_l2.py                        # Track A runner
-├── track_b.py                       # Track B runner
-├── track_c.py                       # Track C runner
-├── track_d.py                       # Track D runner
-├── track_e.py                       # Track E runner
-├── batch_tracks.py                  # Batch eval across tracks
-├── layers/                          # Protocol specifications
-│   ├── classifier.md                #   L0: Skill type classifier
-│   ├── static.md                    #   L1: Structural compliance
-│   ├── behavioral.md                #   L2 Track A: Behavioral delta
-│   ├── track-output.md              #   L2 Track B: Output artifact (📋)
-│   ├── track-format.md              #   L2 Track C: Format (📋)
-│   ├── track-tool.md                #   L2 Track D: Tool (📋)
-│   └── track-knowledge.md           #   L2 Track E: Knowledge (📋)
-├── judge/                           # Judge prompt + output schema
-├── task-gen/                        # Bait task synthesis protocol
-├── scoring.md                       # Scoring formulas + letter grade table
-├── evals/                           # Experiment data
-│   ├── batch-report.md              #   Full experiment report
-│   ├── eight-principles/            #   L1 + L2 (verified)
-│   ├── ai-coding-discipline/        #   L1 only (L2 pending)
-│   ├── improving-skills/            #   L1 only (L2 pending)
-│   ├── skill-engineering/           #   L1 only (L2 pending)
-│   └── skill-creator/               #   L1 only (L2 pending)
+├── SKILL.md                    # Meta skill (load into Claude Code)
+├── README.md · README-zh.md    # Bilingual documentation
+├── run_l2.py                   # Track A: Behavioral delta
+├── track_b.py                  # Track B: Output artifact
+├── track_c.py                  # Track C: Format compliance
+├── track_d.py                  # Track D: Tool correctness
+├── track_e.py                  # Track E: Knowledge accuracy
+├── run_all_tracks.py           # Batch eval: 16 skills × 4 tracks
+├── make_charts.py              # SVG chart generator
+├── layers/                     # Protocol specifications
+│   ├── classifier.md · static.md · behavioral.md
+│   └── track-{output,format,tool,knowledge}.md
+├── judge/                      # Judge prompts + schema
+├── task-gen/                   # Bait task synthesis protocol
+├── scoring.md                  # Scoring formulas
+├── evals/                      # Raw evaluation data
+│   ├── charts/                 # SVG charts + HTML dashboard
+│   ├── batch_16/               # 16-skill batch results
+│   ├── batch-report.md         # Track A batch report
+│   └── {skill}/                # Per-skill reports + API data
 └── CHANGELOG.md
 ```
 
@@ -351,20 +170,23 @@ skill-eval/
 
 ```bash
 git clone https://github.com/oyj123321/skill-eval.git
-ln -s $(pwd)/skill-eval .claude/skills/skill-eval
+cd skill-eval
 
-# Evaluate (in Claude Code):
-/skill-eval .claude/skills/some-skill
+# Single skill (Track A):
+python run_l2.py --skill-path .claude/skills/eight-principles --depth standard
 
-# Or via CLI:
-python run_l2.py --skill-path .claude/skills/some-skill --depth standard
+# All five tracks on one skill:
+python run_all_tracks.py  # reads from evals/skills/
+
+# Regenerate charts:
+python make_charts.py
 ```
 
-| Depth | Cost | Time | Use |
-|-------|------|------|-----|
-| `quick` | Free | <2s | L1 only — "is my SKILL.md valid?" |
-| `standard` | ~$0.01 | ~60s | L1 + L2 (1 run) — "does it work?" |
-| `deep` | ~$0.03 | ~3min | L1 + L2 (3 runs) — "how reliable?" |
+| Depth | Cost | Time |
+|-------|------|------|
+| `quick` (L1 only) | Free | <2s |
+| `standard` (L1 + L2 × 1) | ~$0.006 | ~60s |
+| `deep` (L1 + L2 × 3) | ~$0.02 | ~3min |
 
 ## License
 

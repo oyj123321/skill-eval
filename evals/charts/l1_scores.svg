@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" style="font-family:-apple-system,BlinkMacSystemFont,sans-serif">
+
+  <text x="320" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">L1: Structural Compliance Scores</text>
+    <text x="208" y="78" text-anchor="end" font-size="12" fill="#1e293b">skill-creator</text>
+  <rect x="220" y="60" width="380" height="28" rx="4" fill="#059669" opacity="0.9"/>
+  <text x="608" y="78" font-size="11" fill="#1e293b" font-weight="600">+100.0</text>
+  <text x="208" y="114" text-anchor="end" font-size="12" fill="#1e293b">improving-skills</text>
+  <rect x="220" y="96" width="343" height="28" rx="4" fill="#059669" opacity="0.9"/>
+  <text x="571" y="114" font-size="11" fill="#1e293b" font-weight="600">+90.5</text>
+  <text x="208" y="150" text-anchor="end" font-size="12" fill="#1e293b">eight-principles</text>
+  <rect x="220" y="132" width="342" height="28" rx="4" fill="#059669" opacity="0.9"/>
+  <text x="570" y="150" font-size="11" fill="#1e293b" font-weight="600">+90.0</text>
+  <text x="208" y="186" text-anchor="end" font-size="12" fill="#1e293b">ai-coding-discipline</text>
+  <rect x="220" y="168" width="326" height="28" rx="4" fill="#2563eb" opacity="0.9"/>
+  <text x="554" y="186" font-size="11" fill="#1e293b" font-weight="600">+86.0</text>
+  <text x="208" y="222" text-anchor="end" font-size="12" fill="#1e293b">skill-engineering</text>
+  <rect x="220" y="204" width="326" height="28" rx="4" fill="#2563eb" opacity="0.9"/>
+  <text x="554" y="222" font-size="11" fill="#1e293b" font-weight="600">+86.0</text>
+
+  <line x1="220" y1="244" x2="600" y2="244" stroke="#1e293b" stroke-width="1" opacity="0.3"/>
+  <text x="220" y="260" font-size="11" fill="#64748b"></text>
+
+</svg>
