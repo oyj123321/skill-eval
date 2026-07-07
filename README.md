@@ -66,20 +66,20 @@ INPUT: SKILL.md
       │   STATUS: ✅ IMPLEMENTED
       │
       ├─ Track B (🎨 Output Artifact): Is the file the skill produces good?
-      │   Shared creative task → collect .pptx/.html/.tsx → judge artifact
-      │   STATUS: 📋 DESIGNED (not implemented)
+      │   Shared creative task → collect output → judge artifact quality
+      │   STATUS: ✅ IMPLEMENTED — track_b.py
       │
       ├─ Track C (📐 Format):          Does output follow format rules?
       │   Extract format spec → auto-lint → judge format-vs-content trade-off
-      │   STATUS: 📋 DESIGNED (not implemented)
+      │   STATUS: 📋 DESIGNED
       │
       ├─ Track D (🔧 Tool):            Do the documented commands work?
       │   Execute every command → success rate + error handling
-      │   STATUS: 📋 DESIGNED (not implemented)
+      │   STATUS: 📋 DESIGNED
       │
       └─ Track E (📚 Knowledge):       Is the reference information accurate?
           Extract knowledge claims → query → check accuracy/completeness/traceability
-          STATUS: 📋 DESIGNED (not implemented)
+          STATUS: ✅ IMPLEMENTED — track_e.py
 
 REPORT: L0 classification + L1 structural + L2 per-track results + cost + verdict
 ```
@@ -122,9 +122,13 @@ The only track currently implemented. Protocol:
 
 **Key design decision**: L2 runs via Anthropic API, NOT inside Claude Code sessions. If skill-eval were loaded in both Bare and Armed sessions, the baseline would be contaminated (Claude + skill-eval ≠ Claude alone). The evaluator stays in the control plane; only the target skill's text enters the evaluated sessions.
 
-### 2.5 Tracks B-E: Designed, Not Implemented
+### 2.5 Tracks B-E: Two Implemented, Two Designed
 
-Full protocol specifications exist for the remaining four tracks (see `layers/track-*.md`). Each track has its own rubric, judge prompt, and measurement protocol. Implementation is planned but not yet completed.
+Track B (Output Artifact, `track_b.py`) and Track E (Knowledge, `track_e.py`) have working runners. Both share Track A's API-isolated A/B protocol but use different judge rubrics — artifact quality (Structure, Visual, Completeness, Usability, Professionalism) for Track B, and knowledge accuracy (Accuracy, Completeness, Traceability, Confidence, Synthesis) for Track E.
+
+Key finding: Both tracks expose the same API limitation as Track A — interactive design skills (Track B) are underrated in single-turn API mode, and common knowledge (Track E) shows Δ≈0 because the base model already knows the information. The protocols work mechanically; the limitation is in the evaluation environment, not the methodology.
+
+Tracks C (Format) and D (Tool) have full design documents in `layers/track-*.md` but not yet implemented as runnable scripts.
 
 ---
 
