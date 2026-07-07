@@ -71,11 +71,11 @@ INPUT: SKILL.md
       │
       ├─ Track C (📐 Format):          Does output follow format rules?
       │   Extract format spec → auto-lint → judge format-vs-content trade-off
-      │   STATUS: 📋 DESIGNED
+      │   STATUS: ✅ IMPLEMENTED — track_c.py
       │
       ├─ Track D (🔧 Tool):            Do the documented commands work?
       │   Execute every command → success rate + error handling
-      │   STATUS: 📋 DESIGNED
+      │   STATUS: ✅ IMPLEMENTED — track_d.py
       │
       └─ Track E (📚 Knowledge):       Is the reference information accurate?
           Extract knowledge claims → query → check accuracy/completeness/traceability
@@ -106,29 +106,49 @@ Structural score = (passing_checks / 21) × anti_pattern_penalty, where penalty 
 
 Gate: structural_score < 0.60 (F) → stop. A fundamentally broken SKILL.md cannot be meaningfully evaluated for behavioral delta.
 
-### 2.4 L2 Track A: Behavioral Delta (Implemented)
+### 2.4 L2: Tracked Evaluation
 
-The only track currently implemented. Protocol:
+All five tracks have working implementations:
 
-1. **Constraint extraction**: Parse SKILL.md body → extract all `MUST`/`MUST NOT` lines → each line = one behavioral claim
-2. **Bait task generation**: For each constraint, synthesize a prompt designed to test it — create a situation where an agent WITHOUT the constraint would naturally violate it
-3. **A/B execution** (API-based, no meta-contamination):
-   - Bare: Anthropic API call with generic system prompt + bait task
-   - Armed: Same call with SKILL.md body injected into system prompt
-   - Both arms get `tools: [grep, glob, read]` with a simulated project filesystem matching the bait task scenario
-   - Agent loop: up to 4 turns (tool_use → execute → tool_result → continue)
-4. **Blind judging**: A/B order randomized. Judge (fresh API call, Sonnet-level model) scores both transcripts on 5 dimensions (Rigor, Evidence, Actionability, Risk-awareness, Signal-to-noise; 0-10 each, total 0-50). Judge does NOT know which is Bare vs Armed.
-5. **Delta computation**: Δ = armed_score - bare_score per constraint
+| Track | Runner | Status | Key Finding |
+|-------|--------|--------|-------------|
+| **A** Behavioral | `run_l2.py` | ✅ | API-isolated A/B with agent loop. Output-level constraints: Δ=+20 to +41. Process/tool-dependent skills underrated. |
+| **B** Output Artifact | `track_b.py` | ✅ | Same creative task → judge artifact quality. Format constraints hurt creative docs (-18Δ) but help structured docs (+4Δ). |
+| **C** Format | `track_c.py` | ✅ | Auto-check format adherence + judge format-vs-content trade-off. 3 commit-message tasks: Δ≈0 (rules easy to follow). |
+| **D** Tool | `track_d.py` | ✅ | Execute documented tools against happy/edge/error cases. Demo: 56% pass rate across 3 tools. |
+| **E** Knowledge | `track_e.py` | ✅ | Query → bare vs armed → judge accuracy. Common knowledge: Δ≈0. Niche domain knowledge needs deeper testing. |
 
-**Key design decision**: L2 runs via Anthropic API, NOT inside Claude Code sessions. If skill-eval were loaded in both Bare and Armed sessions, the baseline would be contaminated (Claude + skill-eval ≠ Claude alone). The evaluator stays in the control plane; only the target skill's text enters the evaluated sessions.
+### 2.5 Track-Specific Protocols
 
-### 2.5 Tracks B-E: Two Implemented, Two Designed
+**Track A (Behavioral, `run_l2.py`):**
+1. Parse SKILL.md → extract MUST/MUST NOT constraints
+2. Synthesize bait tasks targeting each constraint
+3. A/B execution (API-based, no session contamination): Bare (generic prompt) vs Armed (prompt + SKILL.md body), with `tools: [grep, glob, read]` + agent loop
+4. Blind judge on 5 dimensions: Rigor, Evidence, Actionability, Risk-awareness, Signal-to-noise (0-10 each, total 0-50)
+5. Δ = Armed - Bare per constraint
 
-Track B (Output Artifact, `track_b.py`) and Track E (Knowledge, `track_e.py`) have working runners. Both share Track A's API-isolated A/B protocol but use different judge rubrics — artifact quality (Structure, Visual, Completeness, Usability, Professionalism) for Track B, and knowledge accuracy (Accuracy, Completeness, Traceability, Confidence, Synthesis) for Track E.
+**Track B (Output Artifact, `track_b.py`):**
+1. Same creative task → both arms generate output
+2. Blind judge on artifact quality: Structure, Visual Quality, Completeness, Usability, Professionalism
+3. Finding: strict format rules reduce content quality for creative tasks (Δ=-18), help for structured tasks (Δ=+4)
 
-Key finding: Both tracks expose the same API limitation as Track A — interactive design skills (Track B) are underrated in single-turn API mode, and common knowledge (Track E) shows Δ≈0 because the base model already knows the information. The protocols work mechanically; the limitation is in the evaluation environment, not the methodology.
+**Track C (Format, `track_c.py`):**
+1. Extract format rules from skill body
+2. Auto-validate: regex/schema checks on output adherence
+3. Judge adjudicates format-vs-content trade-off
+4. Finding: basic format rules show Δ≈0 because both arms follow them
 
-Tracks C (Format) and D (Tool) have full design documents in `layers/track-*.md` but not yet implemented as runnable scripts.
+**Track D (Tool, `track_d.py`):**
+1. Enumerate tool inventory from skill
+2. Test each tool: happy path → edge case → error input
+3. Measure: success rate, error handling quality
+4. Deterministic — no LLM judge needed for pass/fail
+
+**Track E (Knowledge, `track_e.py`):**
+1. Query requiring domain-specific knowledge
+2. Bare (general model knowledge) vs Armed (reference text injected)
+3. Judge on: Accuracy, Completeness, Traceability, Confidence Calibration, Synthesis
+4. Finding: common knowledge Δ≈0; value is in specialized/niche domains
 
 ---
 
@@ -258,7 +278,7 @@ To test whether behavioral delta depends on the model being evaluated, we ran th
 
 3. **Single run.** No Monte Carlo replicates. Statistical confidence intervals are not computed. The Δ = +37.5 should be interpreted as directional, not precise.
 
-4. **Tracks B-E are design documents, not working code.** The type-aware framework claims 5 tracks but only implements 1. Until at least Track B (output artifact) is implemented, the "type-aware" claim overstates current capability.
+4. **Tracks B-E are implemented but not extensively validated.** Track B ran on 3 document types (one skill), Track C on 3 commit messages, Track D on 3 simulated tools, Track E on 1 niche query. The protocols work mechanically but need larger-scale validation with diverse skills.
 
 5. **Judge reliability not measured.** We used a single judge call per comparison. Inter-rater reliability (Cohen's κ) and test-retest reliability have not been established.
 
@@ -288,7 +308,7 @@ We presented skill-eval, a type-aware evaluation framework for Claude Code skill
 
 **What we showed**: (1) Structural quality varies meaningfully across published skills (B through A+). (2) For output-level behavioral skills (n=3), Track A produces consistent positive deltas (+20.5 to +37.5) using API-isolated A/B testing with tool-enabled agent loops. (3) Two skill types — interactive process skills and tool-dependent skills — cannot be evaluated by Track A alone, confirming the need for the multi-track design. (4) The most common structural failure is missing `tests.md` (3/5 skills). (5) **Skill value is model-dependent** — the same skill can be redundant on a strong model (Δ=+2) and essential on a weak one (Δ=+24). Skill evaluations must report the model.
 
-**What remains**: (1) Multi-model testing across Claude tiers (Sonnet/Opus/Haiku) to map the full skill-value-by-model-capability curve. (2) Implement Track C (Format) and Track D (Tool) to complete the 5-track framework. (3) Monte Carlo replicates for statistical confidence. (4) A larger, randomly-sampled skill corpus for ecological validity — with weaker skills included to validate the evaluator's discrimination power.
+**What remains**: (1) Multi-model testing across Claude tiers (Sonnet/Opus/Haiku) to map the full skill-value-by-model-capability curve. (2) Monte Carlo replicates for statistical confidence. (3) A larger, randomly-sampled skill corpus for ecological validity — with weaker skills included to validate the evaluator's discrimination power. (4) Extensive validation of Tracks B-E on diverse skills (currently 1-3 demo tasks each).
 
 **The goal**: Publishing a skill without eval data should feel like publishing an ML model without benchmark scores — you don't do it.
 
@@ -300,7 +320,12 @@ We presented skill-eval, a type-aware evaluation framework for Claude Code skill
 skill-eval/
 ├── SKILL.md                         # Meta skill (load into Claude Code)
 ├── README.md                        # This document
-├── run_l2.py                        # Track A runner: python run_l2.py --skill-path <path>
+├── run_l2.py                        # Track A runner
+├── track_b.py                       # Track B runner
+├── track_c.py                       # Track C runner
+├── track_d.py                       # Track D runner
+├── track_e.py                       # Track E runner
+├── batch_tracks.py                  # Batch eval across tracks
 ├── layers/                          # Protocol specifications
 │   ├── classifier.md                #   L0: Skill type classifier
 │   ├── static.md                    #   L1: Structural compliance
