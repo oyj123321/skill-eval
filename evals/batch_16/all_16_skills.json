@@ -1,0 +1,250 @@
+{
+  "track_b": [
+    {
+      "skill": "docx",
+      "task": "proposal",
+      "bare": 27,
+      "armed": 26,
+      "delta": -1
+    },
+    {
+      "skill": "docx",
+      "task": "guide",
+      "bare": 20,
+      "armed": 11,
+      "delta": -9
+    },
+    {
+      "skill": "pptx",
+      "task": "proposal",
+      "bare": 29,
+      "armed": 26,
+      "delta": -3
+    },
+    {
+      "skill": "pptx",
+      "task": "guide",
+      "bare": 11,
+      "armed": 14,
+      "delta": 3
+    },
+    {
+      "skill": "xlsx",
+      "task": "proposal",
+      "bare": 20,
+      "armed": 27,
+      "delta": 7
+    },
+    {
+      "skill": "xlsx",
+      "task": "guide",
+      "bare": 16,
+      "armed": 15,
+      "delta": -1
+    },
+    {
+      "skill": "canvas-design",
+      "task": "proposal",
+      "bare": 20,
+      "armed": 15,
+      "delta": -5
+    },
+    {
+      "skill": "canvas-design",
+      "task": "guide",
+      "bare": 20,
+      "armed": 14,
+      "delta": -6
+    }
+  ],
+  "track_c": [
+    {
+      "skill": "managing-commits",
+      "task": "bugfix",
+      "bare": 12,
+      "armed": 15,
+      "delta": 3
+    },
+    {
+      "skill": "managing-commits",
+      "task": "feature",
+      "bare": 12,
+      "armed": 11,
+      "delta": -1
+    },
+    {
+      "skill": "brand-guidelines",
+      "task": "bugfix",
+      "bare": 6,
+      "armed": 6,
+      "delta": 0
+    },
+    {
+      "skill": "brand-guidelines",
+      "task": "feature",
+      "bare": 11,
+      "armed": 11,
+      "delta": 0
+    },
+    {
+      "skill": "doc-coauthoring",
+      "task": "bugfix",
+      "bare": 15,
+      "armed": 7,
+      "delta": -8
+    },
+    {
+      "skill": "doc-coauthoring",
+      "task": "feature",
+      "bare": 12,
+      "armed": 13,
+      "delta": 1
+    },
+    {
+      "skill": "theme-factory",
+      "task": "bugfix",
+      "bare": 15,
+      "armed": 8,
+      "delta": -7
+    },
+    {
+      "skill": "theme-factory",
+      "task": "feature",
+      "bare": 0,
+      "armed": 0,
+      "delta": 0
+    }
+  ],
+  "track_d": [
+    {
+      "skill": "claude-api",
+      "cmd": "echo 'Model: claude-sonnet-4-6 | Price: $3/$15 per M tokens'",
+      "expect": "claude-sonnet",
+      "passed": false
+    },
+    {
+      "skill": "claude-api",
+      "cmd": "echo 'Available endpoints: /v1/messages, /v1/models, /v1/completions'",
+      "expect": "endpoints",
+      "passed": true
+    },
+    {
+      "skill": "claude-api",
+      "cmd": "echo 'Rate limit: 50 req/min | Max tokens: 8192' && exit 0",
+      "expect": "Rate limit",
+      "passed": false
+    },
+    {
+      "skill": "mcp-builder",
+      "cmd": "echo 'MCP Server v1.0: stdio transport configured'",
+      "expect": "transport",
+      "passed": true
+    },
+    {
+      "skill": "mcp-builder",
+      "cmd": "echo 'Registered tools: search, fetch, execute'",
+      "expect": "Registered tools",
+      "passed": true
+    },
+    {
+      "skill": "mcp-builder",
+      "cmd": "echo 'Server health: OK | PID: 12345' && exit 0",
+      "expect": "health",
+      "passed": false
+    },
+    {
+      "skill": "webapp-testing",
+      "cmd": "echo 'Test Suite: 12/12 passed | Browser: headless-chromium'",
+      "expect": "passed",
+      "passed": false
+    },
+    {
+      "skill": "webapp-testing",
+      "cmd": "echo 'Lighthouse Score: 95 performance, 100 accessibility, 90 SEO'",
+      "expect": "Lighthouse",
+      "passed": true
+    },
+    {
+      "skill": "webapp-testing",
+      "cmd": "python -c \"print('Screenshot captured: homepage.png')\"",
+      "expect": "Screenshot",
+      "passed": true
+    },
+    {
+      "skill": "slack-gif-creator",
+      "cmd": "echo 'GIF created: output/animation.gif | 480x270 | 15fps | 2.3MB'",
+      "expect": "GIF created",
+      "passed": false
+    },
+    {
+      "skill": "slack-gif-creator",
+      "cmd": "echo 'Frames rendered: 45/45 | Palette: 256 colors'",
+      "expect": "rendered",
+      "passed": false
+    },
+    {
+      "skill": "slack-gif-creator",
+      "cmd": "echo 'Uploading to Slack... OK' && exit 0",
+      "expect": "OK",
+      "passed": true
+    }
+  ],
+  "track_e": [
+    {
+      "skill": "frontend-design",
+      "query": "q1",
+      "bare": 0,
+      "armed": 0,
+      "delta": 0
+    },
+    {
+      "skill": "frontend-design",
+      "query": "q2",
+      "bare": 18,
+      "armed": 19,
+      "delta": 1
+    },
+    {
+      "skill": "internal-comms",
+      "query": "q1",
+      "bare": 9,
+      "armed": 6,
+      "delta": -3
+    },
+    {
+      "skill": "internal-comms",
+      "query": "q2",
+      "bare": 13,
+      "armed": 10,
+      "delta": -3
+    },
+    {
+      "skill": "algorithmic-art",
+      "query": "q1",
+      "bare": 9,
+      "armed": 9,
+      "delta": 0
+    },
+    {
+      "skill": "algorithmic-art",
+      "query": "q2",
+      "bare": 20,
+      "armed": 13,
+      "delta": -7
+    },
+    {
+      "skill": "skill-creator",
+      "query": "q1",
+      "bare": 11,
+      "armed": 18,
+      "delta": 7
+    },
+    {
+      "skill": "skill-creator",
+      "query": "q2",
+      "bare": 14,
+      "armed": 20,
+      "delta": 6
+    }
+  ]
+}RAW_SUMMARY_PLACEHOLDER
