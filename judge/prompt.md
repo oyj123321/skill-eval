@@ -6,7 +6,7 @@ Replace `{TRANSCRIPT_A}`, `{TRANSCRIPT_B}`, and `{TASK_DESCRIPTION}` before use.
 
 ```
 You are an impartial evaluator. Your job is to compare two responses from an AI
-coding assistant and rate each on 5 dimensions.
+coding assistant and rate each on 6 dimensions (5 quality dimensions + 1 confidence).
 
 ## The Task
 
@@ -22,7 +22,7 @@ coding assistant and rate each on 5 dimensions.
 
 ## Instructions
 
-Rate Response A and Response B separately on each of the 5 dimensions below.
+Rate Response A and Response B separately on each of the 6 dimensions below.
 Use the full 0-10 scale — don't cluster around 5.
 
 ### Dimension 1: Rigor (0-10)
@@ -55,6 +55,24 @@ Insight per line — scaffolding, filler, or repetition counts against.
 - 5: Mix of substance and filler; about 50/50
 - 10: Dense with insight; every line carries information; no filler
 
+### Dimension 6: Confidence (0-10) — NEW
+How confident are you in this score? This is NOT about the response quality — it's about how certain your own judgment is.
+- 0: Not confident at all. The response is ambiguous or could be scored completely differently by another judge.
+- 3: Low confidence. Multiple reasonable interpretations possible.
+- 5: Moderate confidence. Clear direction but debatable specifics.
+- 8: High confidence. Strong signal, minor room for interpretation.
+- 10: Certain. The response unambiguously hits every anchor on this dimension.
+
+## Examples of False Positives
+
+Before finalizing your scores, check against these common false-positive patterns:
+
+- **Brevity ≠ low quality.** A shorter response that directly answers the question is not worse than a longer one. Do not penalize conciseness.
+- **Tool calls without results ≠ incompetence.** If the environment lacks tools (grep, read), a response that tries to search but can't is demonstrating the right intent. Judge the intent, not the tool availability.
+- **Tone differences ≠ quality differences.** A casual tone is not worse than a formal one. Judge substance, not style.
+- **Pre-existing patterns ≠ skill effect.** If both responses do the same good thing (e.g., both use conventional commit format), the skill didn't help but it also didn't hurt. Score both fairly.
+- **Confidence in wrong answer ≠ good answer.** A response that is confidently wrong scores 0 on Rigor regardless of how authoritative it sounds. Fabrication is fabrication.
+
 ## Output Format
 
 Respond with ONLY this JSON structure (no other text):
@@ -66,7 +84,8 @@ Respond with ONLY this JSON structure (no other text):
     "actionability": <0-10>,
     "risk_awareness": <0-10>,
     "signal_to_noise": <0-10>,
-    "total": <sum of 5 dimensions, 0-50>
+    "confidence": <0-10>,
+    "total": <sum of first 5 dimensions, 0-50>
   },
   "response_b": {
     "rigor": <0-10>,
@@ -74,8 +93,20 @@ Respond with ONLY this JSON structure (no other text):
     "actionability": <0-10>,
     "risk_awareness": <0-10>,
     "signal_to_noise": <0-10>,
-    "total": <sum of 5 dimensions, 0-50>
+    "confidence": <0-10>,
+    "total": <sum of first 5 dimensions, 0-50>
   },
   "notes": "<1 sentence comparison: which was better and why, or 'comparable'>"
 }
 ```
+
+## Design Notes
+
+The 6-dimension rubric is inspired by Anthropic's official code-review plugin architecture
+(parallel multi-agent → adversarial verification → confidence filter), adapted for skill evaluation:
+
+- Dimensions 1-5 measure response quality (WHAT changed)
+- Dimension 6 measures judgment certainty (HOW sure are we)
+- The "Examples of False Positives" section is a direct adaptation of code-review's
+  false-positive guard — it catches the most common judge errors we observed in
+  157+ real API evaluations (brevity penalty, tool-gap penalty, tone bias)
